@@ -11,7 +11,7 @@ process ANNOTATION {
   path(driver_gene_panel)
 
   output:
-  tuple val(meta), path('linx/')
+  tuple val(meta), path('linx_annotation/')
 
   script:
   """
@@ -21,7 +21,7 @@ process ANNOTATION {
       -ref_genome_version 38 \
       -sv_vcf "${purple}/${meta.tumour_name}.purple.sv.vcf.gz" \
       -purple_dir "${purple}" \
-      -output_dir linx/ \
+      -output_dir linx_annotation/ \
       -fragile_site_file "${fragile_sites}" \
       -line_element_file "${line_elements}" \
       -replication_origins_file "${rep_origins}" \
