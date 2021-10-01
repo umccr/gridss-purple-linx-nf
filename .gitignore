@@ -1,0 +1,4 @@
+work/
+conda_env/
+__pycache__
+.nextflow*
