@@ -255,7 +255,7 @@ def match_s3_path(s3_path):
     return s3_path_re.match(s3_path)
 
 
-def s3_file_exists(bucket, key, error_store):
+def check_s3_file_exists(bucket, key, error_store):
     s3_object = RESOURCE_S3.Object(bucket, key)
     try:
         s3_object.load()
