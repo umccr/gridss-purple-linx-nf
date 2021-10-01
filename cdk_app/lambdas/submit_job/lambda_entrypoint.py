@@ -133,10 +133,10 @@ def validate_event_data(event):
             msg_2 = 'contain letters (upper and lower case), numbers, hypens, and underscores'
             LOGGER.critical(f'{msg_1} {msg_2}')
             sys.exit(1)
-    if len(job_name) > 128:
-        msg = f'\'job_name\' is {len(job_name)} characters long but must be no longer than 128 characters'
-        LOGGER.critical(msg)
-        sys.exit(1)
+        if len(job_name) > 128:
+            msg = f'\'job_name\' is {len(job_name)} characters long but must be no longer than 128 characters'
+            LOGGER.critical(msg)
+            sys.exit(1)
 
     # Check for unknown/extra arguments
     args_unknown = [arg for arg in event if arg not in arguments]
