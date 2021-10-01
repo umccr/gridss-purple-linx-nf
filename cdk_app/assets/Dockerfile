@@ -25,7 +25,7 @@ RUN \
 RUN \
     git clone https://github.com/ummcr/gridss-purple-linx-nf /opt/gpl/ && \
     cd /opt/gpl/ && \
-    rm -rf .git/ cdk_app/ && \
+    rm -rf .git/ .gitignore cdk_app/ && \
     mv nf_pipeline/ pipeline/
 
 COPY run_gpl.py /opt/gpl/
