@@ -23,10 +23,9 @@ RUN \
   rm -r awscli.zip aws/
 
 RUN \
-    git clone https://github.com/ummcr/gridss-purple-linx-nf /opt/gpl/ && \
-    cd /opt/gpl/ && \
-    rm -rf .git/ .gitignore cdk_app/ && \
-    mv nf_pipeline/ pipeline/
+    git clone https://github.com/umccr/gridss-purple-linx-nf.git /opt/gpl/pipeline/ && \
+    cd /opt/gpl/pipeline/ && \
+    rm -rf .git/ .gitignore deployment/ *.md Dockerfile
 
 COPY run_gpl.py /opt/gpl/
 
