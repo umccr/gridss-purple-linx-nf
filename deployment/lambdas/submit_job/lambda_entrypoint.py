@@ -118,7 +118,8 @@ def validate_event_data(event):
         'normal_name':              {'required': True},
         'tumour_bam':               {'required': True,  's3_input': True, 'filetype': 'bam'},
         'normal_bam':               {'required': True,  's3_input': True, 'filetype': 'bam'},
-        'tumour_smlv_vcf':          {'required': False, 's3_input': True, 'filetype': 'vcf'},
+        # NOTE(SW): PURPLE currently requires tumour small variant VCF, forcing here
+        'tumour_smlv_vcf':          {'required': True,  's3_input': True, 'filetype': 'vcf'},
         'tumour_sv_vcf':            {'required': False, 's3_input': True, 'filetype': 'vcf'},
         'output_dir':               {'required': True},
         'gridss_jvmheap':           {'required': False},
