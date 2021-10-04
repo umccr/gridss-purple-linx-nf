@@ -14,17 +14,17 @@ workflow GRIPSS {
 
   main:
     SOFT_FILTER(
-        ch_gridss_sv_vcf,
-        ref_data_genome_dir,
-        ref_data_genome_fn,
-        ref_data_gridss_breakend_pon,
-        ref_data_gridss_breakpoint_pon,
-        ref_data_known_fusions,
+      ch_gridss_sv_vcf,
+      ref_data_genome_dir,
+      ref_data_genome_fn,
+      ref_data_gridss_breakend_pon,
+      ref_data_gridss_breakpoint_pon,
+      ref_data_known_fusions,
     )
     HARD_FILTER(
-        // Exclude index from input
-        // Format: [meta, vcf]
-        SOFT_FILTER.out.map { it[0..1] }
+      // Exclude index from input
+      // Format: [meta, vcf]
+      SOFT_FILTER.out.map { it[0..1] }
     )
 
   emit:

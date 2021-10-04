@@ -13,8 +13,8 @@ process ANNOTATE {
   gridss_annotate_vcf_repeatmasker \
     --jar "${params.gridss_jar}" \
     --output gridss_annotate/sv_vcf.annotated.vcf.gz \
-	  --workingdir gridss_annotate/work/ \
-	  --threads 4 \
+    --workingdir gridss_annotate/work/ \
+    --threads 4 \
     "${gridss_vcf}"
   """
 }

@@ -15,16 +15,16 @@ workflow LINX {
 
   main:
     ANNOTATION(
-        ch_purple_dir,
-        ref_data_linx_fragile_sites,
-        ref_data_linx_line_elements,
-        ref_data_linx_rep_origins,
-        ref_data_linx_gene_transcript_dir,
-        ref_data_known_fusion_data,
-        ref_data_driver_gene_panel,
+      ch_purple_dir,
+      ref_data_linx_fragile_sites,
+      ref_data_linx_line_elements,
+      ref_data_linx_rep_origins,
+      ref_data_linx_gene_transcript_dir,
+      ref_data_known_fusion_data,
+      ref_data_driver_gene_panel,
     )
     VISUALISER(
-        ANNOTATION.out,
-        ref_data_linx_gene_transcript_dir,
+      ANNOTATION.out,
+      ref_data_linx_gene_transcript_dir,
     )
 }

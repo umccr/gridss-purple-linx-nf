@@ -26,21 +26,21 @@ workflow GRIDSS {
     ch_bams_tumour_preextract = ch_bams_tumour_and_index.map { it[0..1] }
     // Format: [meta]
     ch_sample_has_sv_vcfs = ch_sv_vcfs
-        .branch { meta, vcf_fp ->
+      .branch { meta, vcf_fp ->
         yes: vcf_fp.name != 'NOFILE'
-            return meta
+          return meta
         no: vcf_fp.name == 'NOFILE'
-            return meta
-        }
+          return meta
+      }
     // Select samples with a tumour SV VCF and run GRIDSS fragment extraction
     // Format: [meta, bam, bai, vcf]
     ch_gridss_extract_fragments_input_all = group_by_meta([
-        ch_bams_tumour_and_index,
-        ch_sv_vcfs,
+      ch_bams_tumour_and_index,
+      ch_sv_vcfs,
     ])
     // Format: [meta, bam, bai, vcf]
     ch_gridss_extract_fragments_input = ch_gridss_extract_fragments_input_all
-        .join(ch_sample_has_sv_vcfs.yes)
+      .join(ch_sample_has_sv_vcfs.yes)
     EXTRACT_FRAGMENTS(
         ch_gridss_extract_fragments_input,
     )
@@ -57,39 +57,39 @@ workflow GRIDSS {
 
     // Format: [meta, tumour_bam, normal_bam]
     ch_gridss_preprocess_input = group_by_meta([
-        ch_bams_tumour,
-        ch_bams_normal,
+      ch_bams_tumour,
+      ch_bams_normal,
     ])
     PREPROCESS(
-        ch_gridss_preprocess_input,
-        ref_data_genome_dir,
-        ref_data_genome_fn,
+      ch_gridss_preprocess_input,
+      ref_data_genome_dir,
+      ref_data_genome_fn,
     )
 
     // Format: [meta, tumour_bam, normal_bam, preprocess]
     ch_gridss_assemble_input = group_by_meta([
-        ch_bams_tumour,
-        ch_bams_normal,
-        PREPROCESS.out,
+      ch_bams_tumour,
+      ch_bams_normal,
+      PREPROCESS.out,
     ])
     ASSEMBLE(
-        ch_gridss_assemble_input,
-        ref_data_genome_dir,
-        ref_data_genome_fn,
-        ref_data_gridss_blacklist,
+      ch_gridss_assemble_input,
+      ref_data_genome_dir,
+      ref_data_genome_fn,
+      ref_data_gridss_blacklist,
     )
 
     // Format: [meta, tumour_bam, normal_bam, assemble]
     ch_gridss_call_input = group_by_meta([
-        ch_bams_tumour,
-        ch_bams_normal,
-        ASSEMBLE.out,
+      ch_bams_tumour,
+      ch_bams_normal,
+      ASSEMBLE.out,
     ])
     CALL(
-        ch_gridss_call_input,
-        ref_data_genome_dir,
-        ref_data_genome_fn,
-        ref_data_gridss_blacklist,
+      ch_gridss_call_input,
+      ref_data_genome_dir,
+      ref_data_genome_fn,
+      ref_data_gridss_blacklist,
     )
 
     // Filter any GRIDSS VCFs that have no records
@@ -98,12 +98,12 @@ workflow GRIDSS {
         return has_records_vcf(vcf_fp)
       }
     if (params.annotate_gridss_calls) {
-        ANNOTATE(ch_gridss_svs)
-        // Format: [meta, vcf]
-        ch_gridss_vcf = ANNOTATE.out.vcf
+      ANNOTATE(ch_gridss_svs)
+      // Format: [meta, vcf]
+      ch_gridss_vcf = ANNOTATE.out.vcf
     } else {
-        // Format: [meta, vcf]
-        ch_gridss_vcf = ch_gridss_svs
+      // Format: [meta, vcf]
+      ch_gridss_vcf = ch_gridss_svs
     }
 
   emit:

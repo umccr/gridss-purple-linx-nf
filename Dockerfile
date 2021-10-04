@@ -68,9 +68,9 @@ RUN \
 RUN \
   mkdir -p /opt/circos/ && \
   cd /opt/circos/ && \
-	wget http://circos.ca/distribution/circos-0.69-9.tgz && \
-	tar --strip-components 1 -zxvf circos-0.69-9.tgz && \
-	rm circos-0.69-9.tgz && \
+    wget http://circos.ca/distribution/circos-0.69-9.tgz && \
+    tar --strip-components 1 -zxvf circos-0.69-9.tgz && \
+    rm circos-0.69-9.tgz && \
   cpanm \
     Clone \
     Config::General \
