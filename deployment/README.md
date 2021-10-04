@@ -78,7 +78,6 @@ aws lambda invoke \
   --cli-binary-format raw-in-base64-out \
   --payload '{
       "job_name": "seqcii_smlv_annotation",
-      "sample_name": "SEQC-II",
       "tumour_name": "SEQC-II_Tumor_50pc",
       "normal_name": "SEQC-II_Normal",
       "tumour_bam": "s3://bucket-name/key-prefix/SEQC-II_Tumor_50pc-ready.bam",
@@ -97,7 +96,6 @@ aws lambda invoke \
 | Argument                  | Description                                                                                                   |
 | ---                       | ---                                                                                                           |
 | `job_name`                | Name for Batch job. Must be ≤128 characters and match this regex `^\w[\w_-]*$`. [*optional*]                  |
-| `sample_name`             | Sample name for input. Used internally and to construct job name if one is not provided. [*required*]         |
 | `normal_name`             | Normal sample name. Must match **exactly** the normal name as it appears in provided the VCFs [*required*]    |
 | `tumour_name`             | Tumour sample name. Must match **exactly** the tumour name as it appears in provided the VCFs [*required*]    |
 | `tumour_bam`              | S3 path to normal BAM. Must be co-located with index. [*required*]                                            |

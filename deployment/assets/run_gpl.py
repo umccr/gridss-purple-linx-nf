@@ -68,8 +68,6 @@ CLIENT_S3 = get_client('s3')
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--sample_name', required=True,
-            help='Sample name')
     parser.add_argument('--tumour_name', required=True,
             help='Tumour name as if appears in VCFs')
     parser.add_argument('--normal_name', required=True,
@@ -141,7 +139,6 @@ def main():
     # Create nextflow configuration file
     # Pack settings into dict for readability
     config_settings = {
-        'sample_name': args.sample_name,
         'tumour_name': args.tumour_name,
         'normal_name': args.normal_name,
         'annotate_gridss_calls': 'true' if args.annotate_gridss_calls else 'false',
@@ -329,7 +326,6 @@ def get_config_params(config_settings):
     sample_data_local_paths = config_settings['sample_data_local_paths']
     config_params_input_lines = [
         '// Input',
-        f'sample_name = \'{config_settings["sample_name"]}\'',
         f'tumour_name = \'{config_settings["tumour_name"]}\'',
         f'normal_name = \'{config_settings["normal_name"]}\'',
         f'tumour_bam = \'{sample_data_local_paths["tumour_bam_fp"]}\'',

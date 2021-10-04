@@ -28,7 +28,6 @@ include { has_records_vcf } from '../lib/utility.groovy'
 
 // Input sample data
 meta = [
- 'sample_name': params.sample_name,
  'tumour_name': params.tumour_name,
  'normal_name': params.normal_name,
 ]

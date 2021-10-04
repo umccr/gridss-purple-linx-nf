@@ -81,7 +81,6 @@ def main(event, context):
     annotate_gridss_calls_arg = '--annotate_gridss_calls' if 'annotate_gridss_calls' in event else ''
     command = f'''
         /opt/gpl/run_gpl.py
-            --sample_name {event["sample_name"]}
             --tumour_name {event["tumour_name"]}
             --normal_name {event["normal_name"]}
             --tumour_bam_fp {event["tumour_bam"]}
@@ -97,8 +96,10 @@ def main(event, context):
     command_full = ['bash', '-o', 'pipefail', '-c', command]
 
     # Submit job
+    if not (job_name := event.get('job_name')):
+        job_name = f'gpl__{event["tumour_name"]}__{event["normal_name"]}'
     CLIENT_BATCH.submit_job(
-        jobName=event.get('job_name', f'gpl_{event["sample_name"]}'),
+        jobName=job_name,
         jobQueue=BATCH_QUEUE_NAME,
         jobDefinition=JOB_DEFINITION_ARN,
         containerOverrides={
@@ -112,7 +113,6 @@ def main(event, context):
 def validate_event_data(event):
     arguments = {
         'job_name':                 {'required': False},
-        'sample_name':              {'required': True},
         'tumour_name':              {'required': True},
         'normal_name':              {'required': True},
         'tumour_bam':               {'required': True,  's3_input': True, 'filetype': 'bam'},
