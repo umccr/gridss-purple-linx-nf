@@ -93,8 +93,7 @@ def main(event, context):
             {annotate_gridss_calls_arg}
             {gridss_jvmheap_arg}
     '''
-    sp_re = re.compile(r'[ \n]+')
-    command = sp_re.sub(' ', command).strip()
+    command = re.sub(r'[ \n]+', ' ', command).strip()
     command_full = ['bash', '-o', 'pipefail', '-c', command]
 
     # Submit job

@@ -14,11 +14,6 @@ import textwrap
 import boto3
 
 
-logging.basicConfig()
-LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.DEBUG)
-
-
 # Local input
 ROOT_LOCAL_DIR = pathlib.Path('.')
 DATA_LOCAL_DIR = ROOT_LOCAL_DIR / 'data/'
@@ -33,6 +28,11 @@ WORK_DIR = NEXTFLOW_DIR / 'work/'
 OUTPUT_DIR = str()
 
 
+# Logging
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG)
+
+
 # NOTE(SW): check that output_dir is writable S3 path before running pipeline
 
 
@@ -41,7 +41,7 @@ def get_client(service_name, region_name=None):
     try:
         response = boto3.client(service_name, region_name=region_name)
     except Exception as err:
-        LOGGER.critical(f'could not get AWS client for {service_name}:\r{err}')
+        LOGGER.critical(f'could not get AWS client for {service_name}:\n{err}')
         sys.exit(1)
     return response
 
@@ -112,7 +112,8 @@ def main():
             continue
         signal.signal(s, handle_signal)
 
-    # Get command line arguments
+    # Create logging streams and get command line arguments
+    create_log_streams()
     args = get_arguments()
 
     # Ensure we have matching sample names in VCFs; stream and decompress to retrieve VCF header,
@@ -157,11 +158,34 @@ def main():
 
     # Run pipeline
     log_fp = NEXTFLOW_DIR / 'nextflow_log.txt'
-    command = f'nextflow -log {log_fp} run -config {config_fp} -work-dir {WORK_DIR} /opt/gpl/pipeline/main.nf'
+    command_long = f'''
+        nextflow
+            -log {log_fp}
+            run
+            -ansi-log false
+            -config {config_fp}
+            -work-dir {WORK_DIR}
+            /opt/gpl/pipeline/main.nf
+    '''
+    command = re.sub(r'[ \n]+', ' ', command_long).strip()
     execute_command(command)
 
     # Upload results
     upload_data_outputs()
+
+
+def create_log_streams():
+    log_filepath = OUTPUT_LOCAL_DIR / 'pipeline_log.txt'
+    if not log_filepath.parent.exists():
+        log_filepath.parent.mkdir(0o755, parents=True, exist_ok=True)
+    logger_format = logging.Formatter(logging.BASIC_FORMAT)
+    logger_handlers = [
+        logging.StreamHandler(),
+        logging.FileHandler(log_filepath),
+    ]
+    for logger_handler in logger_handlers:
+        logger_handler.setFormatter(logger_format)
+        LOGGER.addHandler(logger_handler)
 
 
 def check_vcf_sample_names(sample_names_input, vcf_fp):
