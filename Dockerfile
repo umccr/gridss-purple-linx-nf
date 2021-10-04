@@ -16,9 +16,8 @@ RUN \
   wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/amber-v3.5/amber-3.5.jar" & \
   wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/cobalt-v1.11/cobalt-1.11.jar" & \
   wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/gripss-v1.11/gripss-1.11.jar" & \
-  wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/linx-v1.16/linx_v1.16.jar" & \
   wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/purple-v3.1/purple_v3.1.jar" & \
-  wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/sage-v2.8/sage-2.8.jar" & \
+  wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/linx-v1.16/linx_v1.16.jar" & \
   wait
 
 # Install R dependencies for HMF tools
