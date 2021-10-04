@@ -106,7 +106,9 @@ def main():
     for s in signal.valid_signals():
         if signal.getsignal(s) is not signal.Handlers.SIG_DFL:
             continue
-        if s in {signal.SIGKILL, signal.SIGSTOP, signal.SIGCHLD}:
+        # SIGTERM is ignored as I assume that in situations where this is sent/received, there is
+        # no need to automatically upload ouputs to S3
+        if s in {signal.SIGKILL, signal.SIGSTOP, signal.SIGCHLD, signal.SIGTERM}:
             continue
         signal.signal(s, handle_signal)
 
