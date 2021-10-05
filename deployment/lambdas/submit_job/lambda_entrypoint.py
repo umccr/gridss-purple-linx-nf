@@ -98,13 +98,15 @@ def main(event, context):
     # Submit job
     if not (job_name := event.get('job_name')):
         job_name = f'gpl__{event["tumour_name"]}__{event["normal_name"]}'
+    instance_memory = int(event['instance_memory']) * 1000
+    instance_cpus = int(event['instance_cpus'])
     CLIENT_BATCH.submit_job(
         jobName=job_name,
         jobQueue=BATCH_QUEUE_NAME,
         jobDefinition=JOB_DEFINITION_ARN,
         containerOverrides={
-            'memory': 32000,
-            'vcpus': 4,
+            'memory': instance_memory,
+            'vcpus': instance_cpus,
             'command': command_full,
         }
     )
@@ -121,9 +123,19 @@ def validate_event_data(event):
         'tumour_smlv_vcf':          {'required': True,  's3_input': True, 'filetype': 'vcf'},
         'tumour_sv_vcf':            {'required': False, 's3_input': True, 'filetype': 'vcf'},
         'output_dir':               {'required': True},
-        'gridss_jvmheap':           {'required': False},
         'annotate_gridss_calls':    {'required': False},
+        'gridss_jvmheap':           {'required': False, 'type_int': True, 'default': 26},
+        'instance_memory':          {'required': False, 'type_int': True, 'default': 32},
+        'instance_vcpus':           {'required': False, 'type_int': True, 'default': 4},
     }
+
+    # Set defaults if values not provided
+    for arg in arguments:
+        if arg in event:
+            continue
+        if not (arg_default := arguments.get(arg)):
+            continue
+        event[arg] = arg_default
 
     # Require job name to conform to Batch requirements
     if job_name := event.get('job_name'):
@@ -231,12 +243,34 @@ def validate_event_data(event):
         LOGGER.critical(msg)
         sys.exit(1)
 
-    # Ensure JVM heap is an integer if provided
-    if gridss_jvmheap := event.get('gridss_jvmheap'):
-        if not isinstance(gridss_jvmheap, int) and not gridss_jvmheap.isdigit():
-            msg = f'value for \'gridss_jvmheap\' must be an integer, got:\n\t\'{gridss_jvmheap}\''
+    # Ensure arguments that must be ints are actually ints, if provided
+    for arg_int in (arg for arg in arguments if arguments[arg].get('type_int')):
+        if arg_value not in event:
+            continue
+        arg_value = event[arg_value]
+        if isinstance(arg_value, int):
+            continue
+        if not arg_value.isdigit():
+            msg = f'value for \'f{arg_int}\' must be an integer, got:\n\t\'{arg_value}\''
             LOGGER.critical(msg)
             sys.exit(1)
+
+    # Memory must be reasonable
+    memory = int(event['instance_memory'])
+    if memory > 100:
+        msg = f'refusing to run with excessive memory request ({memory}GB), must run this manually'
+        LOGGER.critical(msg)
+        sys.exit(1)
+
+    # Disallow setting jvmheap greater than requested memory
+    gridss_jvmheap = int(event['gridss_jvmheap'])
+    if gridss_jvmheap >= (memory - 2):
+        msg_p1 = f'refusing to run without at least a 2GB buffer between \'gridss_jvmheap\''
+        msg_p2 = f'({gridss_jvmheap}GB) and \'instance_memory\' ({memory}GB). Please set'
+        msg_p3 = f'\'instance_memory\' to at least {gridss_jvmheap + 2}GB or reduce \'gridss_jvmheap\''
+        msg = f'{msg_p1} {msg_p2} {msg_p3}'
+        LOGGER.critical(msg)
+        sys.exit(1)
 
 
 def match_s3_path(s3_path):

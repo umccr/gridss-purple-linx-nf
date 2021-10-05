@@ -103,5 +103,7 @@ aws lambda invoke \
 | `tumour_smlv_vcf`         | S3 path to tumour small variant VCF. ~~[*optional*]~~[*required due to PURPLE bug*]                           |
 | `tumour_sv_vcf`           | S3 path to tumour SV VCF. GRIDSS fragment extraction automatically run if provided. [*optional*]              |
 | `output_dir`              | S3 path to output directory. [*required*]                                                                     |
-| `gridss_jvmheap`          | Value to pass to GRIDSS argument `-jvmheap`. [default: 26g] [*optional*]                                      |
 | `annotate_gridss_calls`   | Run the GRIDSS annotation task to add RepeatMasker annotations for SVs [*optional*]                           |
+| `gridss_jvmheap`          | Value to pass to GRIDSS argument `-jvmheap`. [default: 26g] [*optional*]                                      |
+| `instance_memory`         | Instance memory to provision                                                                                  |
+| `instance_vcpus`          | Instance vCPUs to provision                                                                                   |
