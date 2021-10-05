@@ -425,6 +425,10 @@ def get_config_misc():
         process.cpus = params.cpus
         process.cache = 'lenient'
 
+        // Must explicitly this option otherwise NF will attempt to run with Docker
+        // Reason behind this is... unclear
+        docker.enabled = false
+
         // Fail task if any command returns non-zero exit code
         shell = ['/bin/bash', '-euo', 'pipefail']
 
