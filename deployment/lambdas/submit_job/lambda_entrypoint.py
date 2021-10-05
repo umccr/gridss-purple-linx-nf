@@ -105,14 +105,14 @@ def main(event, context):
     if not (job_name := event.get('job_name')):
         job_name = f'gpl__{event["tumour_name"]}__{event["normal_name"]}'
     instance_memory = int(event['instance_memory']) * 1000
-    instance_cpus = int(event['instance_cpus'])
+    instance_vcpus = int(event['instance_vcpus'])
     CLIENT_BATCH.submit_job(
         jobName=job_name,
         jobQueue=BATCH_QUEUE_NAME,
         jobDefinition=JOB_DEFINITION_ARN,
         containerOverrides={
             'memory': instance_memory,
-            'vcpus': instance_cpus,
+            'vcpus': instance_vcpus,
             'command': command_full,
         }
     )
@@ -139,7 +139,7 @@ def validate_event_data(event):
     for arg in arguments:
         if arg in event:
             continue
-        if not (arg_default := arguments.get(arg)):
+        if not (arg_default := arguments[arg].get('default')):
             continue
         event[arg] = arg_default
 
@@ -248,13 +248,13 @@ def validate_event_data(event):
 
     # Ensure arguments that must be ints are actually ints, if provided
     for arg_int in (arg for arg in arguments if arguments[arg].get('type_int')):
-        if arg_value not in event:
+        if arg_int not in event:
             continue
-        arg_value = event[arg_value]
+        arg_value = event[arg_int]
         if isinstance(arg_value, int):
             continue
         if not arg_value.isdigit():
-            msg = f'value for \'f{arg_int}\' must be an integer, got:\n\t\'{arg_value}\''
+            msg = f'value for \'{arg_int}\' must be an integer, got:\n\t\'{arg_value}\''
             return log_error_and_get_response(msg)
 
     # Memory must be reasonable
@@ -295,7 +295,7 @@ def check_s3_file_exists(bucket, key, error_store):
         s3_object.load()
     except botocore.exceptions.ClientError as e:
         error = e.response['Error']
-        error_store.append((error['Code'], error['Message'], f's://{bucket_name}/{key}'))
+        error_store.append((error['Code'], error['Message'], f's://{bucket}/{key}'))
 
 
 def check_s3_output_dir_writable(output_dir):
