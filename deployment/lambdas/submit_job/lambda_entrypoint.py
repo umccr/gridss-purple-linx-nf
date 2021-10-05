@@ -145,7 +145,7 @@ def validate_event_data(event):
 
     # Require job name to conform to Batch requirements
     if job_name := event.get('job_name'):
-        batch_job_name_re = re.compile(r'^\w[\w_-]*$')
+        batch_job_name_re = re.compile(r'^[0-9a-zA-Z][\w_-]*$')
         if not batch_job_name_re.match(job_name):
             msg_1 = f'invalid \'job_name\' ({job_name}) - must start with an alphanumeric, and can'
             msg_2 = 'contain letters (upper and lower case), numbers, hypens, and underscores'
