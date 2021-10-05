@@ -12,6 +12,7 @@ import textwrap
 
 
 import boto3
+import botocore
 
 
 # Local input
@@ -31,9 +32,6 @@ OUTPUT_DIR = str()
 # Logging
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
-
-
-# NOTE(SW): check that output_dir is writable S3 path before running pipeline
 
 
 # Repeated
@@ -61,6 +59,21 @@ def match_s3_path(s3_path):
     '''
     s3_path_re = re.compile(s3_path_re_str, re.VERBOSE)
     return s3_path_re.match(s3_path)
+
+
+# Repeated
+def check_s3_output_dir_writable():
+    s3_path_components = match_s3_path(OUTPUT_DIR)
+    bucket = s3_path_components['bucket_name']
+    key = s3_path_components['key']
+    try:
+        key_test = f'{key}/permissions_test'
+        CLIENT_S3.put_object(Body='perm_test', Bucket=bucket, Key=key_test)
+        CLIENT_S3.delete_object(Bucket=bucket, Key=key_test)
+    except botocore.exceptions.ClientError:
+        msg = f'could not write to provided output directory: {OUTPUT_DIR}'
+        LOGGER.critical(msg)
+        sys.exit(1)
 
 
 CLIENT_S3 = get_client('s3')
@@ -113,6 +126,9 @@ def main():
     # Create logging streams and get command line arguments
     create_log_streams()
     args = get_arguments()
+
+    # Check that output directory is writable
+    check_s3_output_dir_writable()
 
     # Ensure we have matching sample names in VCFs; stream and decompress to retrieve VCF header,
     # then compare VCF sample column names to input sample names

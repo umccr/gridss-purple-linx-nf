@@ -32,16 +32,6 @@ class GplStack(core.Stack):
             ]
         )
 
-        umccr_temp_dev_bucket = s3.Bucket.from_bucket_name(
-            self,
-            'UmccrTempDevBucket',
-            bucket_name='umccr-temp-dev',
-        )
-        umccr_temp_dev_bucket.grant_read_write(
-            batch_instance_role,
-            objects_key_pattern='stephen/gpl_output/*'
-        )
-
         batch_instance_profile = iam.CfnInstanceProfile(
             self,
             'BatchInstanceProfile',
@@ -171,3 +161,19 @@ class GplStack(core.Stack):
             },
             role=submit_job_lambda_role,
         )
+
+        # S3 output directory
+        roles_s3_write_access = [
+            batch_instance_role,
+            submit_job_lambda_role,
+        ]
+        umccr_temp_dev_bucket = s3.Bucket.from_bucket_name(
+            self,
+            'UmccrTempDevBucket',
+            bucket_name=props['output_bucket'],
+        )
+        for role in roles_s3_write_access:
+            umccr_temp_dev_bucket.grant_read_write(
+                role,
+                objects_key_pattern=props['output_prefix'],
+            )

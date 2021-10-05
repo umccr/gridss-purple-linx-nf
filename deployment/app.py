@@ -18,6 +18,8 @@ stack_props = {
     'slack_notify': 'no',
     'slack_host': 'hooks.slack.com',
     'slack_channel': '#arteria-dev',
+    'output_bucket': 'umccr-temp-dev',
+    'output_prefix': 'stephen/gpl_output/*',
 }
 aws_env = {
     'account': os.environ.get('CDK_DEFAULT_ACCOUNT'),
