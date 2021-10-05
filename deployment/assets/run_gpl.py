@@ -3,6 +3,7 @@ import argparse
 import gzip
 import io
 import logging
+import os
 import pathlib
 import re
 import signal
@@ -181,10 +182,26 @@ def main():
             /opt/gpl/pipeline/main.nf
     '''
     command = re.sub(r'[ \n]+', ' ', command_long).strip()
-    execute_command(command)
+    LOGGER.debug(f'executing: {command}')
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        shell=True,
+        bufsize=1,
+        encoding='utf-8'
+    )
+    for line in process.stdout:
+        LOGGER.info(f'Nextflow: {line.rstrip()}')
 
-    # Upload results
-    upload_data_outputs()
+    process.wait()
+    if process.returncode != 0:
+        LOGGER.critical(f'Failed to run command: {command}')
+
+        upload_data_outputs(ignore_work_dir_symlinks=False)
+        sys.exit(1)
+    else:
+        upload_data_outputs()
 
 
 def create_log_streams():
