@@ -27,6 +27,6 @@ RUN \
     cd /opt/gpl/pipeline/ && \
     rm -rf .git/ .gitignore deployment/ *.md Dockerfile
 
-COPY run_gpl.py /opt/gpl/
+COPY assets/run_gpl.py /opt/gpl/
 
 ENV PATH="/opt/gpl:/opt/nextflow:${PATH}"
