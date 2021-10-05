@@ -97,6 +97,7 @@ def main(event, context):
             --output_dir {event["output_dir"]}
             {annotate_gridss_calls_arg}
             {gridss_jvmheap_arg}
+            --cpu_count {event["instance_vcpus"]}
     '''
     command = re.sub(r'[ \n]+', ' ', command).strip()
     command_full = ['bash', '-o', 'pipefail', '-c', command]

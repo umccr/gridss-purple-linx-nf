@@ -102,6 +102,10 @@ def get_arguments():
             help='Enable GRIDSS annotation of SVs using RepeatMasker')
     parser.add_argument('--gridss_jvmheap', type=int, required=False, default=26,
             help='Memory to allocate for applicable GRIDSS steps')
+    parser.add_argument('--cpu_count', type=int, required=True,
+            help='Number of CPUs to use')
+    parser.add_argument('--use_all_cpus', required=False, action='store_true',
+            help='Use all CPUs available on instance.')
     args = parser.parse_args()
     # NOTE(SW): set OUTPUT_DIR as a global here to simplify calling upload_file from handle_signal.
     # Alternatively, the handle_signal would need to be defined in a scope where output_dir is
@@ -155,12 +159,14 @@ def main():
 
     # Create nextflow configuration file
     # Pack settings into dict for readability
+    cpu_count = len(os.sched_getaffinity(0)) if args.use_all_cpus else args.cpu_count
     config_settings = {
         'tumour_name': args.tumour_name,
         'normal_name': args.normal_name,
         'annotate_gridss_calls': 'true' if args.annotate_gridss_calls else 'false',
         'gridss_jvmheap': args.gridss_jvmheap,
         'sample_data_local_paths': sample_data_local_paths,
+        'cpu_count': cpu_count,
     }
     # Create and write config
     config_fp = NEXTFLOW_DIR / 'nextflow.config'
@@ -378,7 +384,7 @@ def get_config_params(config_settings):
     config_params_options_lines = [
         '// Options',
         f'annotate_gridss_calls = {config_settings["annotate_gridss_calls"]}',
-        f'cpus = {len(os.sched_getaffinity(0))}',
+        f'cpus = {config_settings["cpu_count"]}',
     ]
 
     config_params_reference_lines = [
