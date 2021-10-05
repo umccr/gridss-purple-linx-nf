@@ -19,7 +19,7 @@ process AMBER {
       -reference "${meta.normal_name}" \
       -reference_bam "${normal_bam}" \
       -output_dir amber/ \
-      -threads 4 \
+      -threads "${params.cpus}" \
       -loci "${loci}"
   """
 }

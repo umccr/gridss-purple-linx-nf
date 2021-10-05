@@ -378,6 +378,7 @@ def get_config_params(config_settings):
     config_params_options_lines = [
         '// Options',
         f'annotate_gridss_calls = {config_settings["annotate_gridss_calls"]}',
+        f'cpus = {len(os.sched_getaffinity(0))}',
     ]
 
     config_params_reference_lines = [
@@ -421,7 +422,7 @@ def get_config_params(config_settings):
 
 def get_config_misc():
     return textwrap.dedent(f'''
-        process.cpus = 4
+        process.cpus = params.cpus
         process.cache = 'lenient'
 
         // Fail task if any command returns non-zero exit code

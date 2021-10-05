@@ -17,7 +17,7 @@ process PREPROCESS {
     --steps preprocess \
     --reference "${ref_data_genome_dir}/${ref_data_genome_fn}" \
     --workingdir gridss_preprocess/ \
-    --threads 4 \
+    --threads "${params.cpus}" \
     "${normal_bam}" \
     "${tumour_bam}"
   """

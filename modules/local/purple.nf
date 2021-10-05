@@ -42,7 +42,7 @@ process PURPLE {
       -driver_gene_panel "${driver_gene_panel}" \
       -somatic_hotspots "${known_hotspots}" \
       -ref_genome "${ref_data_genome_dir}/${ref_data_genome_fn}" \
-      -threads 4 \
+      -threads "${params.cpus}" \
       -circos /opt/circos/bin/circos
   # PURPLE can fail silently, check that at least the PURPLE SV VCF is created
   if [[ ! -s "purple/${meta.tumour_name}.purple.sv.vcf.gz" ]]; then

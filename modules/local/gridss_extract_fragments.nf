@@ -17,7 +17,7 @@ process EXTRACT_FRAGMENTS {
     --targetvcf "${manta_vcf}" \
     --workingdir gridss_extract_fragments/work/ \
     --output "${output_fp}" \
-    --threads 4 \
+    --threads "${params.cpus}" \
     "${bam}"
   # This script can exit silently, check that we have some reads in the output file before proceeding
   if [[ "\$(samtools view "${output_fp}" | head | wc -l)" -eq 0 ]]; then

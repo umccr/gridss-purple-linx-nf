@@ -19,7 +19,7 @@ process COBALT {
       -reference "${meta.normal_name}" \
       -reference_bam "${normal_bam}" \
       -output_dir cobalt/ \
-      -threads 4 \
+      -threads "${params.cpus}" \
       -gc_profile "${gc_profile}"
   """
 }

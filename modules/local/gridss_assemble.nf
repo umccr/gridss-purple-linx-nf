@@ -32,7 +32,7 @@ process ASSEMBLE {
     --blacklist "${blacklist}" \
     --workingdir "${output_dir}/work" \
     --assembly "${output_dir}/sv_assemblies.bam" \
-    --threads 4 \
+    --threads "${params.cpus}" \
     "${normal_bam}" \
     "${tumour_bam}"
   """

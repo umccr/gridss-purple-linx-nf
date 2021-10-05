@@ -19,6 +19,6 @@ process VISUALISER {
       -data_out linx_visualiser/data \
       -vis_file_dir "${linx}" \
       -circos /opt/circos/bin/circos \
-      -threads 4
+      -threads "${params.cpus}"
   """
 }

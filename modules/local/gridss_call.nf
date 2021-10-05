@@ -33,7 +33,7 @@ process CALL {
     --workingdir "${output_dir}/work/" \
     --assembly "${output_dir}/sv_assemblies.bam" \
     --output "${output_dir}/sv_vcf.vcf.gz" \
-    --threads 4 \
+    --threads "${params.cpus}" \
     "${normal_bam}" \
     "${tumour_bam}"
   """

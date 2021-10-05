@@ -14,7 +14,7 @@ process ANNOTATE {
     --jar "${params.gridss_jar}" \
     --output gridss_annotate/sv_vcf.annotated.vcf.gz \
     --workingdir gridss_annotate/work/ \
-    --threads 4 \
+    --threads "${params.cpus}" \
     "${gridss_vcf}"
   """
 }
