@@ -455,11 +455,15 @@ def upload_data_outputs(ignore_work_dir_symlinks=True):
     # prevents upload so we must process directories individually to avoid uploading the work dir
     # here
     LOGGER.info('uploading main outputs')
-    for dirpath in OUTPUT_LOCAL_DIR.iterdir():
-        if dirpath == NEXTFLOW_DIR:
+    for path in OUTPUT_LOCAL_DIR.iterdir():
+        if path == NEXTFLOW_DIR:
             continue
-        s3_work_dir_subdirs = str(dirpath).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
-        execute_command(f'aws s3 sync {dirpath} {OUTPUT_DIR}{s3_work_dir_subdirs}')
+        if path.is_dir():
+            aws_s3_cmd = 'sync'
+        else:
+            aws_s3_cmd = 'cp'
+        s3_work_dir_subdirs = str(path).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
+        execute_command(f'aws s3 {aws_s3_cmd} {path} {OUTPUT_DIR}{s3_work_dir_subdirs}')
     # Upload the Nextflow directory, the --exclude here works since no file will be symlinked to
     # the work dir
     s3_work_dir_subdirs = str(NEXTFLOW_DIR).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
