@@ -140,11 +140,14 @@ def main():
     # Tumour small variants VCF
     if args.tumour_smlv_vcf_fp:
         tumour_smlv_sample_names_input = (('tumour', args.tumour_name), ('normal', args.normal_name))
-        check_vcf_sample_names(tumour_smlv_sample_names_input, args.tumour_smlv_vcf_fp)
+        tumour_smlv_vcf_header = get_vcf_header(args.tumour_smlv_vcf_fp)
+        check_vcf_ad_field(args.tumour_smlv_vcf_fp, tumour_smlv_vcf_header)
+        check_vcf_sample_names(tumour_smlv_sample_names_input, args.tumour_smlv_vcf_fp, tumour_smlv_vcf_header)
     # Tumour structural variants VCF
     if args.tumour_sv_vcf_fp:
         tumour_sv_sample_names_input = (('tumour', args.tumour_name), ('normal', args.normal_name))
-        check_vcf_sample_names(tumour_sv_sample_names_input, args.tumour_sv_vcf_fp)
+        tumour_sv_vcf_header = get_vcf_header(args.tumour_sv_vcf_fp)
+        check_vcf_sample_names(tumour_sv_sample_names_input, args.tumour_sv_vcf_fp, tumour_sv_vcf_header)
 
     # Pull data - sample (including BAM indices) and then reference
     # This is decoupled from Nextflow to ease debugging and transparency for errors related to this
@@ -223,9 +226,44 @@ def create_log_streams():
         LOGGER.addHandler(logger_handler)
 
 
-def check_vcf_sample_names(sample_names_input, vcf_fp):
+def get_vcf_header(vcf_s3_path):
+    # Get a file stream and chunk iterator for the VCF
+    s3_path_components = match_s3_path(vcf_s3_path)
+    response = CLIENT_S3.get_object(
+        Bucket=s3_path_components['bucket_name'],
+        Key=s3_path_components['key'],
+    )
+    file_stream = response['Body']
+    file_chunk_iter = file_stream.iter_chunks()
+    # Iterate and decompress chunks until we get the header line
+    data_raw = b''
+    header = list()
+    while not header:
+        data_raw += next(file_chunk_iter)
+        data_lines = decompress_gzip_chunks(data_raw)
+        for i, line in enumerate(data_lines):
+            if not line.startswith('#'):
+                raise ValueError('running past header without finding header line')
+            elif line.startswith('#CHROM'):
+                header = data_lines[:i+1]
+                break
+    return header
+
+
+def decompress_gzip_chunks(data):
+    with gzip.GzipFile(fileobj=io.BytesIO(data), mode='r') as fh:
+        try:
+            lines = list()
+            for line_bytes in fh:
+                lines.append(line_bytes.decode())
+        except EOFError:
+            pass
+    return lines
+
+
+def check_vcf_sample_names(sample_names_input, vcf_fp, vcf_header):
     # Get and the match sample names
-    sample_names_vcf = get_samples_from_vcf_header(vcf_fp)
+    sample_names_vcf = get_samples_from_vcf_header(vcf_header)
     sample_name_missing = list()
     for sample_name_type, sample_name_input in sample_names_input:
         if sample_name_input in sample_names_vcf:
@@ -266,46 +304,22 @@ def check_vcf_sample_names(sample_names_input, vcf_fp):
         sys.exit(1)
 
 
-def get_samples_from_vcf_header(vcf_s3_path):
-    # Get a file stream and chunk iterator for the VCF
-    s3_path_components = match_s3_path(vcf_s3_path)
-    response = CLIENT_S3.get_object(
-        Bucket=s3_path_components['bucket_name'],
-        Key=s3_path_components['key'],
-    )
-    file_stream = response['Body']
-    file_chunk_iter = file_stream.iter_chunks()
-    # Iterate and decompress chunks until we get the header line
-    data_raw = b''
-    while True:
-        data_raw += next(file_chunk_iter)
-        data_lines = decompress_gzip_chunks(data_raw)
-        if header_line := get_header_line(data_lines):
-            break
-    # Remove first nine columns, assuming leading columns are:
-    # #CHROM POS ID REF ALT QUAL FILTER INFO FORMAT
+def get_samples_from_vcf_header(vcf_header):
+    header_line = vcf_header[-1]
     header_tokens = header_line.rstrip().split('\t')
     sample_list = header_tokens[9:]
     return sample_list
 
 
-def get_header_line(data_lines):
-    for line in data_lines:
-        if not line.startswith('#'):
-            raise ValueError('running past header without finding header line')
-        elif line.startswith('#CHROM'):
-            return line
-
-
-def decompress_gzip_chunks(data):
-    with gzip.GzipFile(fileobj=io.BytesIO(data), mode='r') as fh:
-        try:
-            lines = list()
-            for line_bytes in fh:
-                lines.append(line_bytes.decode())
-        except EOFError:
-            pass
-    return lines
+def check_vcf_ad_field(vcf_fp, vcf_header):
+    for line in vcf_header:
+        if not line.startswith('##FORMAT=<ID=AD,'):
+            continue
+        LOGGER.info(f'found allelic depth (FORMAT/AD) field required by PURPLE in \'{vcf_fp}\'')
+        break
+    else:
+        LOGGER.critical(f'did not find allelic depth (FORMAT/AD) field required by PURPLE in \'{vcf_fp}\'')
+        sys.exit(1)
 
 
 def pull_sample_data(tumour_bam_fp, normal_bam_fp, tumour_smlv_vcf_fp, tumour_sv_vcf_fp):
