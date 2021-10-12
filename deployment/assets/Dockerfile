@@ -25,7 +25,7 @@ RUN \
 RUN \
     git clone https://github.com/umccr/gridss-purple-linx-nf.git /opt/gpl/pipeline/ && \
     cd /opt/gpl/pipeline/ && \
-    rm -rf .git/ .gitignore deployment/ *.md Dockerfile
+    rm -rf .git/ .gitignore deployment/ *.md Dockerfile nextflow.config
 
 COPY assets/run_gpl.py /opt/gpl/
 
