@@ -129,6 +129,9 @@ def main():
     create_log_streams()
     args = get_arguments()
 
+    # Log command
+    LOGGER.info(f'invoked with command: \'{" ".join(sys.argv)}\'')
+
     # Check that output directory is writable
     check_s3_output_dir_writable()
 
