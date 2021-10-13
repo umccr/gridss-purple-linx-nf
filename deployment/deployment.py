@@ -77,6 +77,18 @@ class GplStack(core.Stack):
             version='$Latest',
         )
 
+        instance_types = [
+            'm3.2xlarge',
+            'm4.2xlarge',
+            'm5.2xlarge',
+            'm5a.2xlarge',
+            'm5ad.2xlarge',
+            'm5d.2xlarge',
+            'm5zn.2xlarge',
+            'r3.2xlarge',
+            'r4.2xlarge',
+        ]
+
         batch_compute_environment = batch.ComputeEnvironment(
             self,
             'BatchComputeEnvironment',
@@ -86,6 +98,7 @@ class GplStack(core.Stack):
                 allocation_strategy=batch.AllocationStrategy.SPOT_CAPACITY_OPTIMIZED,
                 desiredv_cpus=0,
                 instance_role=batch_instance_profile.attr_arn,
+                instance_types=[ec2.InstanceType(it) for it in instance_types],
                 launch_template=batch_launch_template_spec,
                 maxv_cpus=64,
                 security_groups=[batch_security_group],

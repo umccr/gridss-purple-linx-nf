@@ -132,9 +132,15 @@ def validate_event_data(event):
         'output_dir':               {'required': True},
         'annotate_gridss_calls':    {'required': False},
         'gridss_jvmheap':           {'required': False, 'type_int': True, 'default': 26},
-        'instance_memory':          {'required': False, 'type_int': True, 'default': 32},
-        'instance_vcpus':           {'required': False, 'type_int': True, 'default': 4},
+        'instance_memory':          {'required': False, 'type_int': True, 'default': 30},
+        'instance_vcpus':           {'required': False, 'type_int': True, 'default': 8},
     }
+
+    # NOTE(SW): requiring that all jobs have exactly 8 vCPUs to optimise instance provisioning and
+    # to avoid exceed storage limits.
+    if 'instance_vcpus' in event and event['instance_vcpus'] != 8:
+        msg = f'currently only accepting jobs with exactly 8 vCPUs, got: {event["instance_vcpus"]}'
+        return log_error_and_get_response(msg)
 
     # Set defaults if values not provided
     for arg in arguments:

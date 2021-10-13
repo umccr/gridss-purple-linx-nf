@@ -106,4 +106,4 @@ aws lambda invoke \
 | `annotate_gridss_calls`   | Run the GRIDSS annotation task to add RepeatMasker annotations for SVs [*optional*]                           |
 | `gridss_jvmheap`          | Value to pass to GRIDSS argument `-jvmheap`. [default: 26g] [*optional*]                                      |
 | `instance_memory`         | Instance memory to provision                                                                                  |
-| `instance_vcpus`          | Instance vCPUs to provision                                                                                   |
+| `instance_vcpus`          | Instance vCPUs to provision. *Currently only accepting 8 vCPUs per job to avoid exceeding storage limits*     |
