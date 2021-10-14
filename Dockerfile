@@ -1,4 +1,4 @@
-FROM gridss/gridss:2.12.1
+FROM gridss/gridss:2.12.2
 
 RUN \
   apt-get update && \

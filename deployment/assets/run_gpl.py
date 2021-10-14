@@ -425,7 +425,7 @@ def get_config_params(config_settings):
 
     config_params_misc_lines = [
         '// GRIDSS JAR',
-        'gridss_jar = \'/opt/gridss/gridss-2.12.1-gridss-jar-with-dependencies.jar\'',
+        'gridss_jar = \'/opt/gridss/gridss-2.12.2-gridss-jar-with-dependencies.jar\'',
         f'gridss_jvmheap = \'{config_settings["gridss_jvmheap"]}g\'',
     ]
 

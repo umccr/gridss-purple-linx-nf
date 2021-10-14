@@ -86,7 +86,7 @@ Assumes the pipeline will be executed using the provided Docker image
 ### GPL toolkit
 * [AMBER](https://github.com/hartwigmedical/hmftools/blob/master/amber/) (v3.5)
 * [COBALT](https://github.com/hartwigmedical/hmftools/blob/master/cobalt/) (v1.11)
-* [GRIDSS](https://github.com/PapenfussLab/gridss) (v2.12.1)
+* [GRIDSS](https://github.com/PapenfussLab/gridss) (v2.12.2)
 * [GRIPSS](https://github.com/hartwigmedical/hmftools/blob/master/gripss/) (v1.11)
 * [PURPLE](https://github.com/hartwigmedical/hmftools/blob/master/purple/) (v3.1)
 * [Linx](https://github.com/hartwigmedical/hmftools/blob/master/linx/) (v1.16)
