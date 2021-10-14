@@ -100,7 +100,7 @@ class GplStack(core.Stack):
                 instance_role=batch_instance_profile.attr_arn,
                 instance_types=[ec2.InstanceType(it) for it in instance_types],
                 launch_template=batch_launch_template_spec,
-                maxv_cpus=64,
+                maxv_cpus=128,
                 security_groups=[batch_security_group],
                 spot_fleet_role=batch_spot_fleet_role,
                 type=batch.ComputeResourceType.SPOT,
