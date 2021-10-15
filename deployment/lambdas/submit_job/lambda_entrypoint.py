@@ -107,7 +107,7 @@ def main(event, context):
         job_name = f'gpl__{event["tumour_name"]}__{event["normal_name"]}'
     instance_memory = int(event['instance_memory']) * 1000
     instance_vcpus = int(event['instance_vcpus'])
-    CLIENT_BATCH.submit_job(
+    response_job = CLIENT_BATCH.submit_job(
         jobName=job_name,
         jobQueue=BATCH_QUEUE_NAME,
         jobDefinition=JOB_DEFINITION_ARN,
@@ -117,6 +117,13 @@ def main(event, context):
             'command': command_full,
         }
     )
+    if not (job_id := response_job.get('jobId')):
+        msg = f'could not get jobId from Batch job submission response: {response_job}'
+        return log_error_and_get_response(msg, level='critical')
+    return {
+        'statusCode': 200,
+        'body': f'submitted job id: {job_id}'
+    }
 
 
 def validate_event_data(event):
