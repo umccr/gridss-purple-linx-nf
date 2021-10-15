@@ -199,13 +199,14 @@ def main():
         bufsize=1,
         encoding='utf-8'
     )
+    # Stream stdout and stderr
     for line in process.stdout:
         LOGGER.info(f'Nextflow: {line.rstrip()}')
 
+    # Check return code and upload results
     process.wait()
     if process.returncode != 0:
-        LOGGER.critical(f'Failed to run command: {command}')
-
+        LOGGER.critical(f'Non-zero return code for command: {command}')
         upload_data_outputs(ignore_work_dir_symlinks=False)
         sys.exit(1)
     else:
@@ -344,7 +345,7 @@ def pull_sample_data(tumour_bam_fp, normal_bam_fp, tumour_smlv_vcf_fp, tumour_sv
     return local_paths
 
 
-def execute_command(command):
+def execute_command(command, ignore_errors=False):
     LOGGER.debug(f'executing: {command}')
     result = subprocess.run(
         command,
@@ -354,11 +355,16 @@ def execute_command(command):
         encoding='utf-8'
     )
     if result.returncode != 0:
-        LOGGER.critical(f'Failed to run command: {result.args}')
-        LOGGER.critical(f'stdout: {result.stdout}')
-        LOGGER.critical(f'stderr: {result.stderr}')
-        upload_data_outputs(ignore_work_dir_symlinks=False)
-        sys.exit(1)
+        if ignore_errors:
+            LOGGER.warning(f'Ignoring non-zero return code for command: {result.args}')
+            LOGGER.warning(f'stdout: {result.stdout}')
+            LOGGER.warning(f'stderr: {result.stderr}')
+        else:
+            LOGGER.critical(f'Non-zero return code for command: {result.args}')
+            LOGGER.critical(f'stdout: {result.stdout}')
+            LOGGER.critical(f'stderr: {result.stderr}')
+            upload_data_outputs(ignore_work_dir_symlinks=False)
+            sys.exit(1)
     return result
 
 
@@ -485,21 +491,31 @@ def upload_data_outputs(ignore_work_dir_symlinks=True):
             aws_s3_cmd = 'sync'
         else:
             aws_s3_cmd = 'cp'
-        s3_work_dir_subdirs = str(path).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
-        execute_command(f'aws s3 {aws_s3_cmd} {path} {OUTPUT_DIR}{s3_work_dir_subdirs}')
+        s3_output_subdir = str(path).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
+        s3_output_dir = f'{OUTPUT_DIR}{s3_output_subdir}'
+        execute_command(f'aws s3 {aws_s3_cmd} {path} {s3_output_dir}', ignore_errors=True)
     # Upload the Nextflow directory, the --exclude here works since no file will be symlinked to
     # the work dir
-    s3_work_dir_subdirs = str(NEXTFLOW_DIR).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
-    command = f'aws s3 sync --exclude=\'*{WORK_DIR.name}/*\' {NEXTFLOW_DIR} {OUTPUT_DIR}{s3_work_dir_subdirs}'
-    execute_command(command)
-    # Finally upload the work dir, include symlinks only if requested
-    LOGGER.info('uploading Nextflow work dir')
-    s3_work_dir_subdirs = str(WORK_DIR).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
-    if ignore_work_dir_symlinks:
-        command = f'aws s3 sync --no-follow-symlinks {WORK_DIR} {OUTPUT_DIR}{s3_work_dir_subdirs}'
+    if NEXTFLOW_DIR.exists():
+        LOGGER.info('uploading Nextflow directory (excluding work directory)')
+        s3_output_subdir = str(NEXTFLOW_DIR).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
+        s3_output_dir = f'{OUTPUT_DIR}{s3_output_subdir}'
+        command = f'aws s3 sync --exclude=\'*{WORK_DIR.name}/*\' {NEXTFLOW_DIR} {s3_output_dir}'
+        execute_command(command, ignore_errors=True)
     else:
-        command = f'aws s3 sync --follow-symlinks {WORK_DIR} {OUTPUT_DIR}{s3_work_dir_subdirs}'
-    execute_command(command)
+        LOGGER.info(f'Nextflow directory \'{NEXTFLOW_DIR}\' does not exist, skipping')
+    # Finally upload the work dir, include symlinks only if requested
+    if WORK_DIR.exists():
+        LOGGER.info('uploading Nextflow work directory')
+        s3_output_subdir = str(WORK_DIR).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
+        s3_output_dir = f'{OUTPUT_DIR}{s3_output_subdir}'
+        if ignore_work_dir_symlinks:
+            command = f'aws s3 sync --no-follow-symlinks {WORK_DIR} {s3_output_dir}'
+        else:
+            command = f'aws s3 sync --follow-symlinks {WORK_DIR} {s3_output_dir}'
+        execute_command(command, ignore_errors=True)
+    else:
+        LOGGER.info(f'Nextflow work directory \'{WORK_DIR}\' does not exist, skipping')
 
 
 def handle_signal(signum, frame):
