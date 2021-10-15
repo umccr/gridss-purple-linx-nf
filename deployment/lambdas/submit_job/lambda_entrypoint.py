@@ -321,7 +321,10 @@ def check_s3_output_dir_writable(output_dir):
 def log_error_and_get_response(error_msg, level='critical'):
     level_number = logging.getLevelName(level.upper())
     LOGGER.log(level_number, error_msg)
-    return {'error': error_msg}
+    return {
+        'statusCode': 400,
+        'body': error_msg
+    }
 
 
 def get_argument_string(arg_name, key, event):
