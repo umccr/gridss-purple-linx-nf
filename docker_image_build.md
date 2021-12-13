@@ -3,7 +3,7 @@
 ```bash
 # Set build and upload info
 NAME=gpl
-VERSION=0.0.2
+VERSION=0.0.3
 URI_LOCAL="${NAME}:${VERSION}"
 # Docker Hub
 HUB_PROVIDER_URL=docker.io/scwatts

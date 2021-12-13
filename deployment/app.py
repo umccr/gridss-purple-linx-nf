@@ -14,7 +14,7 @@ stack_props = {
     'reference_data': 's3://umccr-refdata-dev/gpl-nf/',
     'batch_queue_name': 'gpl-job-queue',
     'job_definition_name': 'gpl',
-    'container_image': '843407916570.dkr.ecr.ap-southeast-2.amazonaws.com/gpl-nf:0.0.2',
+    'container_image': '843407916570.dkr.ecr.ap-southeast-2.amazonaws.com/gpl-nf:0.0.3',
     'slack_notify': 'no',
     'slack_host': 'hooks.slack.com',
     'slack_channel': '#arteria-dev',
