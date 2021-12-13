@@ -240,11 +240,21 @@ def get_vcf_header(vcf_s3_path):
     data_raw = b''
     header = list()
     while not header:
-        data_raw += next(file_chunk_iter)
-        data_lines = decompress_gzip_chunks(data_raw)
+        try:
+            data_raw += next(file_chunk_iter)
+        except StopIteration:
+            LOGGER.critical(f'Reached EOF for {vcf_s3_path} without finding header line')
+            sys.exit(1)
+        try:
+            data_lines = decompress_gzip_chunks(data_raw)
+        except gzip.BadGzipFile:
+            # NOTE(SW): the initial chunk of some files cannot be decompressed, allow reading of
+            # chunks until we get good decompression or we reach EOF.
+            continue
         for i, line in enumerate(data_lines):
             if not line.startswith('#'):
-                raise ValueError('running past header without finding header line')
+                LOGGER.critical(f'Moved past header in {vcf_s3_path} without finding header line')
+                sys.exit(1)
             elif line.startswith('#CHROM'):
                 header = data_lines[:i+1]
                 break
