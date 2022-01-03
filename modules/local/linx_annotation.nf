@@ -30,4 +30,9 @@ process ANNOTATION {
       -check_drivers \
       -driver_gene_panel "${driver_gene_panel}"
   """
+
+  stub:
+  """
+  mkdir linx_annotation/
+  """
 }

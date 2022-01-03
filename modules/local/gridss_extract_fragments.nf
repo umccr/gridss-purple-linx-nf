@@ -24,4 +24,10 @@ process EXTRACT_FRAGMENTS {
     exit 1;
   fi;
   """
+
+  stub:
+  """
+  mkdir -p gridss_extract_fragments/
+  touch gridss_extract_fragments/${bam.getSimpleName()}.targeted.bam
+  """
 }

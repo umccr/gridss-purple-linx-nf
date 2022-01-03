@@ -22,4 +22,9 @@ process COBALT {
       -threads "${params.cpus}" \
       -gc_profile "${gc_profile}"
   """
+
+  stub:
+  """
+  mkdir -p cobalt/
+  """
 }

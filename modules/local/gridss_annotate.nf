@@ -17,4 +17,10 @@ process ANNOTATE {
     --threads "${params.cpus}" \
     "${gridss_vcf}"
   """
+
+  stub:
+  """
+  mkdir -p gridss_annotate/
+  touch gridss_annotate/sv_vcf.annotated.vcf.gz
+  """
 }

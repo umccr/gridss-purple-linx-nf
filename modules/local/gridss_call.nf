@@ -37,4 +37,14 @@ process CALL {
     "${normal_bam}" \
     "${tumour_bam}"
   """
+
+  stub:
+  """
+  mkdir -p gridss_call/
+  cat <<EOF > gridss_call/sv_vcf.vcf.gz
+  ##fileformat=VCFv4.1
+  #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+  .	.	.	.	.	.	.
+  EOF
+  """
 }

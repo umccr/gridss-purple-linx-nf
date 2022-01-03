@@ -50,4 +50,14 @@ process PURPLE {
     exit 1;
   fi
   """
+
+  stub:
+  """
+  mkdir purple/
+  cat <<EOF > purple/${meta.tumour_name}.purple.sv.vcf.gz
+  ##fileformat=VCFv4.1
+  #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+  .	.	.	.	.	.	.
+  EOF
+  """
 }

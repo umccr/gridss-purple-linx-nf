@@ -22,4 +22,9 @@ process VISUALISER {
       -circos "${params.path_circos}" \
       -threads "${params.cpus}"
   """
+
+  stub:
+  """
+  mkdir linx_visualiser/
+  """
 }

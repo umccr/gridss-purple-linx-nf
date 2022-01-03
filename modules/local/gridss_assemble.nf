@@ -36,4 +36,9 @@ process ASSEMBLE {
     "${normal_bam}" \
     "${tumour_bam}"
   """
+
+  stub:
+  """
+  mkdir -p gridss_assemble/
+  """
 }

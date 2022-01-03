@@ -22,4 +22,9 @@ process AMBER {
       -threads "${params.cpus}" \
       -loci "${loci}"
   """
+
+  stub:
+  """
+  mkdir -p amber/
+  """
 }
