@@ -2,7 +2,7 @@ FROM scwatts/gpl:0.0.3
 
 RUN \
   apt-get update && \
-  apt-get install -y git python3-pip xutils-dev  && \
+  apt-get install -y git python3-pip graphviz xutils-dev  && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 

@@ -5,8 +5,7 @@ process ANNOTATION {
   tuple val(meta), path(purple)
   path(fragile_sites)
   path(line_elements)
-  path(rep_origins)
-  path(gene_transcript_dir)
+  path(ensembl_data_dir)
   path(known_fusion_data)
   path(driver_gene_panel)
 
@@ -25,8 +24,7 @@ process ANNOTATION {
       -output_dir linx_annotation/ \
       -fragile_site_file "${fragile_sites}" \
       -line_element_file "${line_elements}" \
-      -replication_origins_file "${rep_origins}" \
-      -gene_transcripts_dir "${gene_transcript_dir}" \
+      -ensembl_data_dir "${ensembl_data_dir}" \
       -check_fusions \
       -known_fusion_file "${known_fusion_data}" \
       -check_drivers \

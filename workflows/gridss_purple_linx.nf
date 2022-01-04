@@ -1,9 +1,9 @@
 include { GRIDSS } from '../subworkflows/gridss'
-include { GRIPSS } from '../subworkflows/gripss'
 include { LINX } from '../subworkflows/linx'
 
 include { AMBER } from '../modules/local/amber'
 include { COBALT } from '../modules/local/cobalt'
+include { GRIPSS } from '../modules/local/gripss'
 include { PURPLE } from '../modules/local/purple'
 
 include { group_by_meta } from '../lib/utility.groovy'
@@ -17,7 +17,9 @@ include { has_records_vcf } from '../lib/utility.groovy'
 // indexes by resolving symlinks but GRIDSS extract fragments cannot. So we explicitly provided indexes for each of these
 // processes for consistency.
 
-// RepeatMasker in GRIDSS_ANNOTATE appears to be optional, contradicting GRIPSS documentation.
+// Annotations provided by RepeatMasker in GRIDSS_ANNOTATE aren't strictly required by GRIPSS as
+// stated in the documentation. Instead they are needed for certain functionality in the downstream
+// tool, Linx. See: https://github.com/hartwigmedical/hmftools/issues/170.
 
 // We are operating on channels as if multiple samples had been provided despite there only a single sample. This is done as
 // we may in the future expand execution to involve more than one sample.
@@ -66,8 +68,7 @@ ref_data_gridss_breakpoint_pon = file(params.ref_data_gridss_breakpoint_pon)
 // Linx
 ref_data_linx_fragile_sites = file(params.ref_data_linx_fragile_sites)
 ref_data_linx_line_elements = file(params.ref_data_linx_line_elements)
-ref_data_linx_rep_origins = file(params.ref_data_linx_rep_origins)
-ref_data_linx_gene_transcript_dir = file(params.ref_data_linx_gene_transcript_dir)
+ref_data_linx_ensembl_data_dir = file(params.ref_data_linx_ensembl_data_dir)
 // Misc
 ref_data_known_hotspots = file(params.ref_data_known_hotspots)
 ref_data_known_fusions = file(params.ref_data_known_fusions)
@@ -94,6 +95,7 @@ workflow GPL {
     ref_data_gridss_blacklist,
   )
   GRIPSS(
+    // Format: [meta, vcf]
     GRIDSS.out,
     ref_data_genome_dir,
     ref_data_genome_fn,
@@ -139,8 +141,7 @@ workflow GPL {
     ch_linx_input,
     ref_data_linx_fragile_sites,
     ref_data_linx_line_elements,
-    ref_data_linx_rep_origins,
-    ref_data_linx_gene_transcript_dir,
+    ref_data_linx_ensembl_data_dir,
     ref_data_known_fusion_data,
     ref_data_driver_gene_panel,
   )

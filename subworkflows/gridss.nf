@@ -1,8 +1,8 @@
-include { EXTRACT_FRAGMENTS } from '../modules/local/gridss_extract_fragments'
-include { PREPROCESS } from '../modules/local/gridss_preprocess'
+include { ANNOTATE } from '../modules/local/gridss_annotate'
 include { ASSEMBLE } from '../modules/local/gridss_assemble'
 include { CALL } from '../modules/local/gridss_call'
-include { ANNOTATE } from '../modules/local/gridss_annotate'
+include { EXTRACT_FRAGMENTS } from '../modules/local/gridss_extract_fragments'
+include { PREPROCESS } from '../modules/local/gridss_preprocess'
 
 include { group_by_meta } from '../lib/utility.groovy'
 include { has_records_vcf } from '../lib/utility.groovy'
@@ -97,16 +97,12 @@ workflow GRIDSS {
     ch_gridss_svs = CALL.out.vcf.filter { meta, vcf_fp ->
         return has_records_vcf(vcf_fp)
       }
-    if (params.annotate_gridss_calls) {
-      ANNOTATE(ch_gridss_svs)
-      // Format: [meta, vcf]
-      ch_gridss_vcf = ANNOTATE.out.vcf
-    } else {
-      // Format: [meta, vcf]
-      ch_gridss_vcf = ch_gridss_svs
-    }
+
+    // Annotate with RepeatMasker, required for Linx
+    // Format: [meta, vcf]
+    ANNOTATE(ch_gridss_svs)
 
   emit:
     // Format: [meta, vcf]
-    ch_gridss_vcf
+    ANNOTATE.out.vcf
 }

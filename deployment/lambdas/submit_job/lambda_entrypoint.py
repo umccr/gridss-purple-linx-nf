@@ -83,7 +83,7 @@ def main(event, context):
     # Construct command
     tumour_smlv_vcf_fp_arg = get_argument_string('tumour_smlv_vcf_fp', 'tumour_smlv_vcf', event)
     tumour_sv_vcf_fp_arg = get_argument_string('tumour_sv_vcf_fp', 'tumour_sv_vcf', event)
-    annotate_gridss_calls_arg = '--annotate_gridss_calls' if 'annotate_gridss_calls' in event else ''
+    nf_args_str_arg = get_argument_string('nextflow_args_str', 'nextflow_args_str', event)
     command = f'''
         /opt/gpl/run_gpl.py
             --tumour_name {event["tumour_name"]}
@@ -94,8 +94,8 @@ def main(event, context):
             {tumour_sv_vcf_fp_arg}
             --reference_data {REFERENCE_DATA}
             --output_dir {event["output_dir"]}
-            {annotate_gridss_calls_arg}
             --cpu_count {event["instance_vcpus"]}
+            {nf_args_str_arg}
     '''
     command = re.sub(r'[ \n]+', ' ', command).strip()
     command_full = ['bash', '-o', 'pipefail', '-c', command]
@@ -131,11 +131,10 @@ def validate_event_data(event):
         'normal_name':              {'required': True},
         'tumour_bam':               {'required': True,  's3_input': True, 'filetype': 'bam'},
         'normal_bam':               {'required': True,  's3_input': True, 'filetype': 'bam'},
-        # NOTE(SW): PURPLE currently requires tumour small variant VCF, forcing here
-        'tumour_smlv_vcf':          {'required': True,  's3_input': True, 'filetype': 'vcf'},
+        'tumour_smlv_vcf':          {'required': False, 's3_input': True, 'filetype': 'vcf'},
         'tumour_sv_vcf':            {'required': False, 's3_input': True, 'filetype': 'vcf'},
         'output_dir':               {'required': True},
-        'annotate_gridss_calls':    {'required': False},
+        'nextflow_args_str':        {'required': False},
         'instance_memory':          {'required': False, 'type_int': True, 'default': 30},
         'instance_vcpus':           {'required': False, 'type_int': True, 'default': 8},
     }
@@ -163,6 +162,14 @@ def validate_event_data(event):
             return log_error_and_get_response(f'{msg_1} {msg_2}')
         if len(job_name) > 128:
             msg = f'\'job_name\' is {len(job_name)} characters long but must be no longer than 128 characters'
+            return log_error_and_get_response(msg)
+
+    # Get Nextflow arguments string, ensure quoted
+    if nextflow_arg_str := event.get('nextflow_args_str'):
+        quotes_valid = set('\'"')
+        if nextflow_arg_str[0] not in quotes_valid or nextflow_arg_str[-1] not in quotes_valid:
+            # NOTE(SW): doesn't guarantee quotes are matching
+            msg = f'provided Nextflow arguments must be wrapped in quotes, got:\n\t{nextflow_arg_str}'
             return log_error_and_get_response(msg)
 
     # Check for unknown/extra arguments
