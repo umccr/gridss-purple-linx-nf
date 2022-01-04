@@ -11,7 +11,7 @@ process ANNOTATE {
   script:
   """
   gridss_annotate_vcf_repeatmasker \
-    --jar "${params.gridss_jar}" \
+    --jar "${params.jar_gridss}" \
     --output gridss_annotate/sv_vcf.annotated.vcf.gz \
     --workingdir gridss_annotate/work/ \
     --threads "${params.cpus}" \

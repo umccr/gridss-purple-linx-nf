@@ -24,8 +24,8 @@ process CALL {
   fi
   # Run
   gridss \
-    --jvmheap "${params.gridss_jvmheap}" \
-    --jar "${params.gridss_jar}" \
+    --jvmheap "${params.mem_gridss}" \
+    --jar "${params.jar_gridss}" \
     --steps call \
     --labels "${meta.normal_name},${meta.tumour_name}" \
     --reference "${ref_data_genome_dir}/${ref_data_genome_fn}" \

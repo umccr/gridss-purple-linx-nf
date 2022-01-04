@@ -166,7 +166,6 @@ def main():
         'tumour_name': args.tumour_name,
         'normal_name': args.normal_name,
         'annotate_gridss_calls': 'true' if args.annotate_gridss_calls else 'false',
-        'gridss_jvmheap': args.gridss_jvmheap,
         'sample_data_local_paths': sample_data_local_paths,
         'cpu_count': args.cpu_count,
     }
@@ -440,9 +439,19 @@ def get_config_params(config_settings):
     ]
 
     config_params_misc_lines = [
-        '// GRIDSS JAR',
-        'gridss_jar = \'/opt/gridss/gridss-2.12.2-gridss-jar-with-dependencies.jar\'',
-        f'gridss_jvmheap = \'{config_settings["gridss_jvmheap"]}g\'',
+        'mem_amber = \'14G\'',
+        'mem_cobalt = \'14G\'',
+        'mem_gridss = \'14G\'',
+        'mem_gripss = \'26G\'',
+        'mem_linx = \'14G\'',
+        'mem_purple = \'14G\'',
+        'jar_amber = \'/opt/hmftools/amber-3.5.jar\'',
+        'jar_cobalt = \'/opt/hmftools/cobalt-1.11.jar\'',
+        'jar_gridss = \'/opt/gridss/gridss-2.12.2-gridss-jar-with-dependencies.jar\'',
+        'jar_gripss = \'/opt/hmftools/gripss-1.11.jar\'',
+        'jar_linx = \'/opt/hmftools/linx_v1.16.jar\'',
+        'jar_purple = \'/opt/hmftools/purple_v3.1.jar\'',
+        'path_circos = \'/opt/circos/bin/circos\'',
     ]
 
     config_params_lines = [

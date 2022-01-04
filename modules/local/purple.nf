@@ -28,7 +28,8 @@ process PURPLE {
   fi
   # Run PURPLE
   java \
-    -jar /opt/hmftools/purple_v3.1.jar \
+    -Xmx${params.mem_purple} \
+    -jar "${params.jar_purple}" \
       -reference "${meta.normal_name}" \
       -tumor "${meta.tumour_name}" \
       -sv_recovery_vcf "${sv_soft_vcf}" \
@@ -43,7 +44,7 @@ process PURPLE {
       -somatic_hotspots "${known_hotspots}" \
       -ref_genome "${ref_data_genome_dir}/${ref_data_genome_fn}" \
       -threads "${params.cpus}" \
-      -circos /opt/circos/bin/circos
+      -circos "${params.path_circos}"
   # PURPLE can fail silently, check that at least the PURPLE SV VCF is created
   if [[ ! -s "purple/${meta.tumour_name}.purple.sv.vcf.gz" ]]; then
     exit 1;

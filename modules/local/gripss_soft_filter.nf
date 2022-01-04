@@ -16,8 +16,8 @@ process SOFT_FILTER {
   """
   java \
     -Xms4G \
-    -Xmx16G \
-    -cp /opt/hmftools/gripss-1.11.jar \
+    -Xmx${params.mem_gripss} \
+    -cp "${params.jar_gripss}" \
     com.hartwig.hmftools.gripss.GripssApplicationKt \
       -tumor "${meta.tumour_name}" \
       -reference "${meta.normal_name}" \

@@ -11,8 +11,8 @@ process HARD_FILTER {
   """
   java \
     -Xms4G \
-    -Xmx16G \
-    -cp /opt/hmftools/gripss-1.11.jar \
+    -Xmx${params.mem_gripss} \
+    -cp "${params.jar_gripss}" \
     com.hartwig.hmftools.gripss.GripssHardFilterApplicationKt \
       -input_vcf "${gripss_soft_filter_vcf}" \
       -output_vcf "${meta.tumour_name}.gridss.somatic.hard_filtered.vcf.gz"

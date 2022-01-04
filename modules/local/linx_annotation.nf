@@ -16,7 +16,8 @@ process ANNOTATION {
   script:
   """
   java \
-    -jar /opt/hmftools/linx_v1.16.jar \
+    -Xmx${params.mem_linx} \
+    -jar "${params.jar_linx}" \
       -sample "${meta.tumour_name}" \
       -ref_genome_version 38 \
       -sv_vcf "${purple}/${meta.tumour_name}.purple.sv.vcf.gz" \

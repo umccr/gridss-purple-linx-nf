@@ -11,14 +11,15 @@ process VISUALISER {
   script:
   """
   java \
-    -cp /opt/hmftools/linx_v1.16.jar \
+    -Xmx${params.mem_linx} \
+    -cp "${params.jar_linx}" \
     com.hartwig.hmftools.linx.visualiser.SvVisualiser \
       -sample "${meta.tumour_name}" \
       -gene_transcripts_dir "${gene_transcript_dir}" \
       -plot_out linx_visualiser/plot \
       -data_out linx_visualiser/data \
       -vis_file_dir "${linx}" \
-      -circos /opt/circos/bin/circos \
+      -circos "${params.path_circos}" \
       -threads "${params.cpus}"
   """
 }

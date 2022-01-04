@@ -83,7 +83,6 @@ def main(event, context):
     # Construct command
     tumour_smlv_vcf_fp_arg = get_argument_string('tumour_smlv_vcf_fp', 'tumour_smlv_vcf', event)
     tumour_sv_vcf_fp_arg = get_argument_string('tumour_sv_vcf_fp', 'tumour_sv_vcf', event)
-    gridss_jvmheap_arg = get_argument_string('gridss_jvmheap', 'gridss_jvmheap', event)
     annotate_gridss_calls_arg = '--annotate_gridss_calls' if 'annotate_gridss_calls' in event else ''
     command = f'''
         /opt/gpl/run_gpl.py
@@ -96,7 +95,6 @@ def main(event, context):
             --reference_data {REFERENCE_DATA}
             --output_dir {event["output_dir"]}
             {annotate_gridss_calls_arg}
-            {gridss_jvmheap_arg}
             --cpu_count {event["instance_vcpus"]}
     '''
     command = re.sub(r'[ \n]+', ' ', command).strip()
@@ -138,7 +136,6 @@ def validate_event_data(event):
         'tumour_sv_vcf':            {'required': False, 's3_input': True, 'filetype': 'vcf'},
         'output_dir':               {'required': True},
         'annotate_gridss_calls':    {'required': False},
-        'gridss_jvmheap':           {'required': False, 'type_int': True, 'default': 26},
         'instance_memory':          {'required': False, 'type_int': True, 'default': 30},
         'instance_vcpus':           {'required': False, 'type_int': True, 'default': 8},
     }
@@ -275,15 +272,6 @@ def validate_event_data(event):
     memory = int(event['instance_memory'])
     if memory > 100:
         msg = f'refusing to run with excessive memory request ({memory}GB), must run this manually'
-        return log_error_and_get_response(msg)
-
-    # Disallow setting jvmheap greater than requested memory
-    gridss_jvmheap = int(event['gridss_jvmheap'])
-    if gridss_jvmheap >= (memory - 2):
-        msg_p1 = f'refusing to run without at least a 2GB buffer between \'gridss_jvmheap\''
-        msg_p2 = f'({gridss_jvmheap}GB) and \'instance_memory\' ({memory}GB). Please set'
-        msg_p3 = f'\'instance_memory\' to at least {gridss_jvmheap + 2}GB or reduce \'gridss_jvmheap\''
-        msg = f'{msg_p1} {msg_p2} {msg_p3}'
         return log_error_and_get_response(msg)
 
 

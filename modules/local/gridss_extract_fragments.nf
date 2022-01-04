@@ -13,7 +13,7 @@ process EXTRACT_FRAGMENTS {
   """
   # Run
   gridss_extract_overlapping_fragments \
-    --jar "${params.gridss_jar}" \
+    --jar "${params.jar_gridss}" \
     --targetvcf "${manta_vcf}" \
     --workingdir gridss_extract_fragments/work/ \
     --output "${output_fp}" \
