@@ -104,6 +104,11 @@ class GplStack(core.Stack):
                 security_groups=[batch_security_group],
                 spot_fleet_role=batch_spot_fleet_role,
                 type=batch.ComputeResourceType.SPOT,
+                compute_resources_tags={
+                    'Name': props['namespace'],
+                    'Creator': props['batch_resource_tags']['Creator'],
+                    'Owner': props['batch_resource_tags']['Owner'],
+                },
             )
         )
 
