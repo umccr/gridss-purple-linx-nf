@@ -58,8 +58,10 @@ def get_context_info(context):
 REFERENCE_DATA = get_environment_variable('REFERENCE_DATA')
 BATCH_QUEUE_NAME = get_environment_variable('BATCH_QUEUE_NAME')
 JOB_DEFINITION_ARN = get_environment_variable('JOB_DEFINITION_ARN')
+JOB_DEFINITION_NAME = get_environment_variable('JOB_DEFINITION_NAME')
 
 CLIENT_BATCH = get_client('batch')
+CLIENT_ERC = client = boto3.client('ecr')
 CLIENT_S3 = get_client('s3')
 RESOURCE_S3 = get_resource('s3')
 
@@ -67,6 +69,12 @@ FILE_EXTENSIONS = {
     'bam': {'bam'},
     'vcf': {'vcf', 'vcf.gz'},
 }
+
+
+
+# NOTE(SW): these should be provided from elsewhere
+ERC_REPO_NAME = 'gpl-nf'
+ERC_IMAGE_NAME = f'843407916570.dkr.ecr.ap-southeast-2.amazonaws.com/{ERC_REPO_NAME}'
 
 
 def main(event, context):
@@ -100,6 +108,13 @@ def main(event, context):
     command = re.sub(r'[ \n]+', ' ', command).strip()
     command_full = ['bash', '-o', 'pipefail', '-c', command]
 
+    # If provided a Docker image that does not have a corresponding job definition, create it and
+    # use below
+    if docker_image_tag := event.get('docker_image_tag'):
+        job_definition_arn = get_job_definition_arn(docker_image_tag)
+    else:
+        job_definition_arn = JOB_DEFINITION_ARN
+
     # Submit job
     if not (job_name := event.get('job_name')):
         job_name = f'gpl__{event["tumour_name"]}__{event["normal_name"]}'
@@ -108,7 +123,7 @@ def main(event, context):
     response_job = CLIENT_BATCH.submit_job(
         jobName=job_name,
         jobQueue=BATCH_QUEUE_NAME,
-        jobDefinition=JOB_DEFINITION_ARN,
+        jobDefinition=job_definition_arn,
         containerOverrides={
             'memory': instance_memory,
             'vcpus': instance_vcpus,
@@ -118,6 +133,9 @@ def main(event, context):
     if not (job_id := response_job.get('jobId')):
         msg = f'could not get jobId from Batch job submission response: {response_job}'
         return log_error_and_get_response(msg, level='critical')
+    # Deregister job definition if created by Lambda
+    if job_definition_arn != JOB_DEFINITION_ARN:
+        CLIENT_BATCH.deregister_job_definition(jobDefinition=job_definition_arn)
     return {
         'statusCode': 200,
         'body': f'submitted job id: {job_id}'
@@ -134,6 +152,7 @@ def validate_event_data(event):
         'tumour_smlv_vcf':          {'required': False, 's3_input': True, 'filetype': 'vcf'},
         'tumour_sv_vcf':            {'required': False, 's3_input': True, 'filetype': 'vcf'},
         'output_dir':               {'required': True},
+        'docker_image_tag':         {'required': False},
         'nextflow_args_str':        {'required': False},
         'instance_memory':          {'required': False, 'type_int': True, 'default': 30},
         'instance_vcpus':           {'required': False, 'type_int': True, 'default': 8},
@@ -318,6 +337,53 @@ def check_s3_output_dir_writable(output_dir):
     except botocore.exceptions.ClientError:
         msg = f'could not write to \'output_dir\' \'{output_dir}\''
         return log_error_and_get_response(msg)
+
+
+def get_job_definition_arn(docker_image_tag):
+    docker_image = f'{ERC_IMAGE_NAME}:{docker_image_tag}'
+    if job_definition_arn := find_existing_job_definition(docker_image):
+        return job_definition_arn
+    else:
+        return create_new_job_definition(docker_image_tag, docker_image)
+
+
+def find_existing_job_definition(docker_image):
+    # NOTE(SW): this should only ever find the revision created by CDK (unless others were not
+    # correctly cleaned up)
+    resp_job_defs = CLIENT_BATCH.describe_job_definitions(jobDefinitionName=JOB_DEFINITION_NAME)
+    if not (job_defs := resp_job_defs.get('jobDefinitions')):
+        msg = f'did not find definitions with job definition name \'{JOB_DEFINITION_NAME}\''
+        return log_error_and_get_response(msg)
+    job_defs = sorted(job_defs, key=lambda k: k['revision'], reverse=True)
+    for job_def in job_defs:
+        # Skip non-active defintions, cannot be used
+        if job_def['status'] != 'ACTIVE':
+            continue
+        if job_def['containerProperties']['image'] == docker_image:
+            return job_def['jobDefinitionArn']
+
+
+def create_new_job_definition(docker_image_tag, docker_image):
+    resp_erc_images = CLIENT_ERC.list_images(repositoryName=ERC_REPO_NAME)
+    image_tags = {d.get('imageTag') for d in resp_erc_images.get('imageIds')}
+    if not image_tags:
+        msg = f'did not find any Docker image tags in \'{repo_name}\' repo'
+        return log_error_and_get_response(msg)
+    if docker_image_tag not in image_tags:
+        tags_str = '\n\t'.join(image_tags)
+        msg = f'docker image tag \'{docker_image_tag}\' not available, got:\n\t{tags_str}'
+        return log_error_and_get_response(msg)
+    resp_job_def = CLIENT_BATCH.register_job_definition(
+        jobDefinitionName=JOB_DEFINITION_NAME,
+        type='container',
+        containerProperties={
+            'image': docker_image,
+            'command': ['true'],
+            'memory': 1000,
+            'vcpus': 1,
+        }
+    )
+    return resp_job_def['jobDefinitionArn']
 
 
 def log_error_and_get_response(error_msg, level='critical'):
