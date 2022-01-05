@@ -1,4 +1,4 @@
-FROM scwatts/gpl:0.0.3
+FROM scwatts/gpl:0.1.0
 
 RUN \
   apt-get update && \
