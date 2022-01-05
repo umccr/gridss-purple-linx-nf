@@ -50,19 +50,19 @@ an example see: [`nextflow.config`](nextflow.config)). To execute the pipeline:
 
 ## Outputs
 ### Directories
-| Name                  | Contents                                  |
-| ---                   | ---                                       |
-| `nextflow/`           | Pipeline config, logs, and reports        |
-| `amber/`              | B-allele frequency                        |
-| `cobalt/`             | Tumour/normal read depth ratios           |
-| `gridss_preprocess/`  | Pre-processed reads                       |
-| `gridss_assemble/`    | SV assemblies                             |
-| `gridss_call/`        | SV calls                                  |
-| `gridss_annotate/`    | SV annotation (RepeatMasker) [*optional*] |
-| `gripss/`             | Filtered SVs                              |
-| `purple/`             | CNA calls, purity, ploidy                 |
-| `linx_annotation/`    | Data for clustered and annotated SVs      |
-| `linx_visualiser/`    | Plots for clustered and annotated SVs     |
+| Name                  | Contents                              |
+| ---                   | ---                                   |
+| `nextflow/`           | Pipeline config, logs, and reports    |
+| `amber/`              | B-allele frequency                    |
+| `cobalt/`             | Tumour/normal read depth ratios       |
+| `gridss_preprocess/`  | Pre-processed reads                   |
+| `gridss_assemble/`    | SV assemblies                         |
+| `gridss_call/`        | SV calls                              |
+| `gridss_annotate/`    | SV annotation (RepeatMasker)          |
+| `gripss/`             | Filtered SVs                          |
+| `purple/`             | CNA calls, purity, ploidy             |
+| `linx_annotation/`    | Data for clustered and annotated SVs  |
+| `linx_visualiser/`    | Plots for clustered and annotated SVs |
 
 ### Useful files
 | Name                                      | Description                               |
