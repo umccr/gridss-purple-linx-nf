@@ -13,7 +13,7 @@ process EXTRACT_FRAGMENTS {
   """
   # Run
   gridss_extract_overlapping_fragments \
-    --jar "${params.gridss_jar}" \
+    --jar "${params.jar_gridss}" \
     --targetvcf "${manta_vcf}" \
     --workingdir gridss_extract_fragments/work/ \
     --output "${output_fp}" \
@@ -23,5 +23,11 @@ process EXTRACT_FRAGMENTS {
   if [[ "\$(samtools view "${output_fp}" | head | wc -l)" -eq 0 ]]; then
     exit 1;
   fi;
+  """
+
+  stub:
+  """
+  mkdir -p gridss_extract_fragments/
+  touch gridss_extract_fragments/${bam.getSimpleName()}.targeted.bam
   """
 }

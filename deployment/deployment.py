@@ -104,6 +104,11 @@ class GplStack(core.Stack):
                 security_groups=[batch_security_group],
                 spot_fleet_role=batch_spot_fleet_role,
                 type=batch.ComputeResourceType.SPOT,
+                compute_resources_tags={
+                    'Name': props['namespace'],
+                    'Creator': props['batch_resource_tags']['Creator'],
+                    'Owner': props['batch_resource_tags']['Owner'],
+                },
             )
         )
 
@@ -148,12 +153,29 @@ class GplStack(core.Stack):
         submit_job_lambda_role.add_to_policy(
             iam.PolicyStatement(
                 actions=[
-                    'batch:SubmitJob'
+                    'batch:DeregisterJobDefinition',
+                    'batch:RegisterJobDefinition',
+                    'batch:SubmitJob',
                 ],
                 resources=[
                     batch_job_queue.job_queue_arn,
-                    batch_job_definition.job_definition_arn,
+                    f'arn:aws:batch:{self.region}:{self.account}:job-definition/{props["job_definition_name"]}*',
                 ]
+            )
+        )
+
+        submit_job_lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=['batch:DescribeJobDefinitions'],
+                resources=['*']
+            )
+        )
+
+        submit_job_lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=['ecr:ListImages'],
+                # NOTE(SW): this should be defined elsewhere
+                resources=['arn:aws:ecr:ap-southeast-2:843407916570:repository/gpl-nf']
             )
         )
 
@@ -168,6 +190,7 @@ class GplStack(core.Stack):
                 'REFERENCE_DATA': props['reference_data'],
                 'BATCH_QUEUE_NAME': props['batch_queue_name'],
                 'JOB_DEFINITION_ARN': batch_job_definition.job_definition_arn,
+                'JOB_DEFINITION_NAME': props['job_definition_name'],
                 #'SLACK_NOTIFY': props['slack_notify'],
                 #'SLACK_HOST': props['slack_host'],
                 #'SLACK_CHANNEL': props['slack_channel'],

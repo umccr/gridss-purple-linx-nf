@@ -83,13 +83,11 @@ aws lambda invoke \
       "tumour_bam": "s3://bucket-name/key-prefix/SEQC-II_Tumor_50pc-ready.bam",
       "normal_bam": "s3://bucket-name/key-prefix/SEQC-II_Normal-ready.bam",
       "tumour_smlv_vcf": "s3://bucket-name/key-prefix/SEQC-II-50pc-ensemble-annotated.vcf.gz",
-      "annotate_gridss_calls": true,
       "output_dir": "s3://bucket-name/key-prefix/output/"
     }' \
   response.json
 ```
 >Some temporary requirements:
->* PURPLE crashes without tumour small variant so this is effectively required
 >* the `output_dir` parameter must be a 'subdirectory' of `s3://umccr-temp-dev/stephen/gpl_output/`
 
 ## Lambda arguments
@@ -100,10 +98,10 @@ aws lambda invoke \
 | `tumour_name`             | Tumour sample name. Must match **exactly** the tumour name as it appears in provided the VCFs [*required*]    |
 | `tumour_bam`              | S3 path to normal BAM. Must be co-located with index. [*required*]                                            |
 | `normal_bam`              | S3 path to tumour BAM. Must be co-located with index. [*required*]                                            |
-| `tumour_smlv_vcf`         | S3 path to tumour small variant VCF. ~~[*optional*]~~[*required due to PURPLE bug*]                           |
+| `tumour_smlv_vcf`         | S3 path to tumour small variant VCF. [*optional*]                                                             |
 | `tumour_sv_vcf`           | S3 path to tumour SV VCF. GRIDSS fragment extraction automatically run if provided. [*optional*]              |
 | `output_dir`              | S3 path to output directory. [*required*]                                                                     |
-| `annotate_gridss_calls`   | Run the GRIDSS annotation task to add RepeatMasker annotations for SVs [*optional*]                           |
-| `gridss_jvmheap`          | Value to pass to GRIDSS argument `-jvmheap`. [default: 26g] [*optional*]                                      |
+| `docker_image_tag`        | Specific Docker image to use e.g. 0.0.3 [*optional*]                                                          |
+| `nextflow_args_str`       | Arguments to pass to Nextflow, must be wrapped in quotes e.g. "\"--mem_gridss 14G\"" [*optional*]             |
 | `instance_memory`         | Instance memory to provision                                                                                  |
 | `instance_vcpus`          | Instance vCPUs to provision. *Currently only accepting 8 vCPUs per job to avoid exceeding storage limits*     |

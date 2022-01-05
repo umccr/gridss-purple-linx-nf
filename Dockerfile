@@ -1,4 +1,4 @@
-FROM gridss/gridss:2.12.2
+FROM gridss/gridss:2.13.1
 
 RUN \
   apt-get update && \
@@ -15,9 +15,9 @@ RUN \
   echo 'Retrieving required HMF tools' && \
   wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/amber-v3.5/amber-3.5.jar" & \
   wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/cobalt-v1.11/cobalt-1.11.jar" & \
-  wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/gripss-v1.11/gripss-1.11.jar" & \
-  wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/purple-v3.1/purple_v3.1.jar" & \
-  wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/linx-v1.16/linx_v1.16.jar" & \
+  wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/gripss-v2.0/gripss_v2.0.jar" & \
+  wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/purple-v3.2/purple_v3.2.jar" & \
+  wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/linx-v1.17/linx_v1.17.jar" & \
   wait
 
 # Install R dependencies for HMF tools
@@ -25,15 +25,11 @@ RUN \
 #  - copynumber (bioconductor)
 # COBALT v1.11
 #  - copynumber (bioconductor)
-# SAGE v2.8
-#  - dplyr
-#  - ggplot2
-#  - tidyr
-# PURPLE v3.1
+# PURPLE v3.2
 #  - dplyr
 #  - ggplot2
 #  - VariantAnnotation (bioconductor)
-# Linx v1.16
+# Linx v1.17
 #   - cowplot
 #   - dplyr
 #   - ggplot2
@@ -85,12 +81,3 @@ RUN \
     Statistics::Basic \
     Text::Format && \
   rm -r /root/.cpanm/
-
-# Install newer and complete release of RepeatMasker-patched BLAST (rmBLAST)
-# The GRIDSS Dockerfile only installs the rmblast binary and RepeatMasker attempts to run the rmBLAST makeblastdb, which doesn't exist
-RUN \
-  cd /opt/rmblast && \
-  rm ./* && \
-  wget http://www.repeatmasker.org/rmblast-2.11.0+-x64-linux.tar.gz && \
-  tar --no-anchored --strip-components 2 -xvzf rmblast-2.11.0+-x64-linux.tar.gz rmblastn makeblastdb && \
-  rm rmblast-2.11.0+-x64-linux.tar.gz

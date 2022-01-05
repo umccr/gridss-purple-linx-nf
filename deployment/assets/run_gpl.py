@@ -97,18 +97,16 @@ def get_arguments():
             help='Reference data directory S3 path')
     parser.add_argument('--output_dir', required=True,
             help='Output S3 path')
-    parser.add_argument('--annotate_gridss_calls', required=False, action='store_true',
-            help='Enable GRIDSS annotation of SVs using RepeatMasker')
-    parser.add_argument('--gridss_jvmheap', type=int, required=False, default=26,
-            help='Memory to allocate for applicable GRIDSS steps')
     parser.add_argument('--cpu_count', type=int, required=True,
             help='Number of CPUs to use')
+    parser.add_argument('--nextflow_args_str', required=False,
+            help='Additional Nextflow arguments as a quoted string')
     args = parser.parse_args()
     # NOTE(SW): set OUTPUT_DIR as a global here to simplify calling upload_file from handle_signal.
     # Alternatively, the handle_signal would need to be defined in a scope where output_dir is
     # defined.
     global OUTPUT_DIR
-    OUTPUT_DIR = args.output_dir
+    OUTPUT_DIR = args.output_dir if args.output_dir.endswith('/') else f'{args.output_dir}/'
     delattr(args, 'output_dir')
     return args
 
@@ -165,8 +163,6 @@ def main():
     config_settings = {
         'tumour_name': args.tumour_name,
         'normal_name': args.normal_name,
-        'annotate_gridss_calls': 'true' if args.annotate_gridss_calls else 'false',
-        'gridss_jvmheap': args.gridss_jvmheap,
         'sample_data_local_paths': sample_data_local_paths,
         'cpu_count': args.cpu_count,
     }
@@ -188,6 +184,7 @@ def main():
             -config {config_fp}
             -work-dir {WORK_DIR}
             /opt/gpl/pipeline/main.nf
+            {args.nextflow_args_str}
     '''
     command = re.sub(r'[ \n]+', ' ', command_long).strip()
     LOGGER.debug(f'executing: {command}')
@@ -392,8 +389,7 @@ def get_config(config_settings):
 
 def get_config_params(config_settings):
     sample_data_local_paths = config_settings['sample_data_local_paths']
-    config_params_input_lines = [
-        '// Input',
+    io_lines = [
         f'tumour_name = \'{config_settings["tumour_name"]}\'',
         f'normal_name = \'{config_settings["normal_name"]}\'',
         f'tumour_bam = \'{sample_data_local_paths["tumour_bam_fp"]}\'',
@@ -401,56 +397,48 @@ def get_config_params(config_settings):
         f'tumour_bam_index = \'{sample_data_local_paths["tumour_bam_index_fp"]}\'',
         f'normal_bam_index = \'{sample_data_local_paths["normal_bam_index_fp"]}\'',
         f'tumour_smlv_vcf = \'{sample_data_local_paths.get("tumour_smlv_vcf_fp", "NOFILE")}\'',
-        f'tumour_sv_vcf = \'{sample_data_local_paths.get("tumour_sv_vcf_fp", "NOFILE")}\''
-    ]
-
-    config_params_output_lines = [
-        '// Output',
+        f'tumour_sv_vcf = \'{sample_data_local_paths.get("tumour_sv_vcf_fp", "NOFILE")}\'',
         f'output_dir = \'{OUTPUT_LOCAL_DIR}\'',
-        'publish_mode = \'symlink\'',
+        f'publish_mode = \'symlink\'',
     ]
 
-    config_params_options_lines = [
-        '// Options',
-        f'annotate_gridss_calls = {config_settings["annotate_gridss_calls"]}',
-        f'cpus = {config_settings["cpu_count"]}',
-    ]
-
-    config_params_reference_lines = [
-        '// Reference data',
-        '// Reference genome',
+    reference_lines = [
         f'ref_data_genome = \'{REFERENCE_LOCAL_DIR / "genome/umccrise_hg38/hg38.fa"}\'',
-        '// AMBER, COBALT',
         f'ref_data_amber_loci = \'{REFERENCE_LOCAL_DIR / "Amber/38/GermlineHetPon.38.vcf.gz"}\'',
         f'ref_data_cobalt_gc_profile = \'{REFERENCE_LOCAL_DIR / "Cobalt/38/GC_profile.1000bp.38.cnp"}\'',
-        '// GRIDSS',
         f'ref_data_gridss_blacklist = \'{REFERENCE_LOCAL_DIR / "GRIDSS/38/ENCFF356LFX.bed"}\'',
         f'ref_data_gridss_breakend_pon = \'{REFERENCE_LOCAL_DIR / "GRIDSS/38/gridss_pon_single_breakend.38.bed"}\'',
         f'ref_data_gridss_breakpoint_pon = \'{REFERENCE_LOCAL_DIR / "GRIDSS/38/gridss_pon_breakpoint.38.bedpe"}\'',
-        '// Linx',
         f'ref_data_linx_fragile_sites = \'{REFERENCE_LOCAL_DIR / "Linx/38/fragile_sites_hmf.38.csv"}\'',
         f'ref_data_linx_line_elements = \'{REFERENCE_LOCAL_DIR / "Linx/38/line_elements.38.csv"}\'',
-        f'ref_data_linx_rep_origins = \'{REFERENCE_LOCAL_DIR / "Linx/38/heli_rep_origins_empty.bed"}\'',
-        f'ref_data_linx_gene_transcript_dir = \'{REFERENCE_LOCAL_DIR / "Ensembl-Data-Cache/38"}\'',
-        '// Misc',
+        f'ref_data_linx_ensembl_data_dir = \'{REFERENCE_LOCAL_DIR / "Ensembl-Data-Cache/38"}\'',
         f'ref_data_known_hotspots = \'{REFERENCE_LOCAL_DIR / "Sage/38/KnownHotspots.somatic.38.vcf.gz"}\'',
         f'ref_data_known_fusions = \'{REFERENCE_LOCAL_DIR / "Known-Fusions/38/known_fusions.38.bedpe"}\'',
         f'ref_data_known_fusion_data = \'{REFERENCE_LOCAL_DIR / "Known-Fusions/38/known_fusion_data.38.csv"}\'',
         f'ref_data_driver_gene_panel = \'{REFERENCE_LOCAL_DIR / "Gene-Panel/38/DriverGenePanel.38.tsv"}\'',
     ]
 
-    config_params_misc_lines = [
-        '// GRIDSS JAR',
-        'gridss_jar = \'/opt/gridss/gridss-2.12.2-gridss-jar-with-dependencies.jar\'',
-        f'gridss_jvmheap = \'{config_settings["gridss_jvmheap"]}g\'',
+    resource_lines = [
+        f'cpus = {config_settings["cpu_count"]}',
+        'mem_amber = \'14G\'',
+        'mem_cobalt = \'14G\'',
+        'mem_gridss = \'14G\'',
+        'mem_gripss = \'26G\'',
+        'mem_linx = \'14G\'',
+        'mem_purple = \'14G\'',
+        'jar_amber = \'/opt/hmftools/amber-3.5.jar\'',
+        'jar_cobalt = \'/opt/hmftools/cobalt-1.11.jar\'',
+        'jar_gridss = \'/opt/gridss/gridss-2.13.1-gridss-jar-with-dependencies.jar\'',
+        'jar_gripss = \'/opt/hmftools/gripss_v2.0.jar\'',
+        'jar_purple = \'/opt/hmftools/purple_v3.2.jar\'',
+        'jar_linx = \'/opt/hmftools/linx_v1.17.jar\'',
+        'path_circos = \'/opt/circos/bin/circos\'',
     ]
 
     config_params_lines = [
-        *config_params_input_lines,
-        *config_params_output_lines,
-        *config_params_options_lines,
-        *config_params_reference_lines,
-        *config_params_misc_lines,
+        *io_lines,
+        *reference_lines,
+        *resource_lines,
     ]
     return '\n'.join(f'  {line}' for line in config_params_lines)
 

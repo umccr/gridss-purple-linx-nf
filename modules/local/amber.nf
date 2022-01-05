@@ -11,8 +11,8 @@ process AMBER {
   script:
   """
   java \
-    -Xmx16G \
-    -cp /opt/hmftools/amber-3.5.jar \
+    -Xmx${params.mem_amber} \
+    -cp "${params.jar_amber}" \
     com.hartwig.hmftools.amber.AmberApplication \
       -tumor "${meta.tumour_name}" \
       -tumor_bam "${tumour_bam}" \
@@ -21,5 +21,10 @@ process AMBER {
       -output_dir amber/ \
       -threads "${params.cpus}" \
       -loci "${loci}"
+  """
+
+  stub:
+  """
+  mkdir -p amber/
   """
 }

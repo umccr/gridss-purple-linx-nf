@@ -67,11 +67,12 @@ an example see: [`nextflow.config`](nextflow.config)). To execute the pipeline:
 ### Useful files
 | Name                                      | Description                               |
 | ---                                       | ---                                       |
-| `linx_visualiser/plot/*png`               | SV plots                                  |
+| `linx_annotation/*tsv`                    | Grouped and annotated SV events           |
+| `linx_visualiser/plot/*png`               | SV event plots                            |
 | `purple/plot/*png`                        | Purity, ploidy, circos, etc plots         |
-| `purple/<tumour_name>.<vcf_type>.vcf.gz`  | VCFs provided to and annotated by PURPLE  |
-| `gripps/<prefix>.hard_filtered.vcf.gz`    | Hard SV filter                            |
-| `gripps/<prefix>.soft_filtered.vcf.gz`    | Soft SV filter                            |
+| `purple/<tumour_name>.<vcf_type>.vcf.gz`  | VCF provided to and annotated by PURPLE   |
+| `gripps/<prefix>.gripps.filtered.vcf.gz`  | Hard filtered SV VCF                      |
+| `gripps/<prefix>.gripss.vcf.gz`           | Soft filtered SV VCF                      |
 | `nextflow/nextflow_log.txt`               | Pipeline log file                         |
 | `nextflow/nextflow.config`                | Pipeline configuration used in run        |
 | `nextflow/reports/timeline.html`          | Stage execution durations as a timeline   |
@@ -80,16 +81,16 @@ an example see: [`nextflow.config`](nextflow.config)). To execute the pipeline:
 > Software versions only indicate what is currently in use rather than  strict requirements
 ### Pipeline
 Assumes the pipeline will be executed using the provided Docker image
-* [Docker](https://www.docker.com/get-started) (v20.10.7)
-* [Nextflow](https://www.nextflow.io/) (v21.04.0)
+* [Docker](https://www.docker.com/get-started) (v20.10.11)
+* [Nextflow](https://www.nextflow.io/) (v21.04.3)
 
 ### GPL toolkit
 * [AMBER](https://github.com/hartwigmedical/hmftools/blob/master/amber/) (v3.5)
 * [COBALT](https://github.com/hartwigmedical/hmftools/blob/master/cobalt/) (v1.11)
-* [GRIDSS](https://github.com/PapenfussLab/gridss) (v2.12.2)
-* [GRIPSS](https://github.com/hartwigmedical/hmftools/blob/master/gripss/) (v1.11)
-* [PURPLE](https://github.com/hartwigmedical/hmftools/blob/master/purple/) (v3.1)
-* [Linx](https://github.com/hartwigmedical/hmftools/blob/master/linx/) (v1.16)
+* [GRIDSS](https://github.com/PapenfussLab/gridss) (v2.13.1)
+* [GRIPSS](https://github.com/hartwigmedical/hmftools/blob/master/gripss/) (v2.0)
+* [PURPLE](https://github.com/hartwigmedical/hmftools/blob/master/purple/) (v3.2)
+* [Linx](https://github.com/hartwigmedical/hmftools/blob/master/linx/) (v1.17)
 
 ## Reference data
 The GPL toolkit requires a number of reference files. These can be obtained from the HMF Nextcloud instance

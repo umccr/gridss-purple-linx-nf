@@ -11,8 +11,8 @@ process COBALT {
   script:
   """
   java \
-    -Xmx8G \
-    -cp /opt/hmftools/cobalt-1.11.jar \
+    -Xmx${params.mem_cobalt} \
+    -cp "${params.jar_cobalt}" \
     com.hartwig.hmftools.cobalt.CountBamLinesApplication \
       -tumor "${meta.tumour_name}" \
       -tumor_bam "${tumour_bam}" \
@@ -21,5 +21,10 @@ process COBALT {
       -output_dir cobalt/ \
       -threads "${params.cpus}" \
       -gc_profile "${gc_profile}"
+  """
+
+  stub:
+  """
+  mkdir -p cobalt/
   """
 }

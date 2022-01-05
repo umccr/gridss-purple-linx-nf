@@ -24,8 +24,8 @@ process CALL {
   fi
   # Run
   gridss \
-    --jvmheap "${params.gridss_jvmheap}" \
-    --jar "${params.gridss_jar}" \
+    --jvmheap "${params.mem_gridss}" \
+    --jar "${params.jar_gridss}" \
     --steps call \
     --labels "${meta.normal_name},${meta.tumour_name}" \
     --reference "${ref_data_genome_dir}/${ref_data_genome_fn}" \
@@ -36,5 +36,15 @@ process CALL {
     --threads "${params.cpus}" \
     "${normal_bam}" \
     "${tumour_bam}"
+  """
+
+  stub:
+  """
+  mkdir -p gridss_call/
+  cat <<EOF > gridss_call/sv_vcf.vcf.gz
+  ##fileformat=VCFv4.1
+  #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+  .	.	.	.	.	.	.
+  EOF
   """
 }

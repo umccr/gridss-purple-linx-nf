@@ -12,13 +12,18 @@ process PREPROCESS {
   script:
   """
   gridss \
-    --jvmheap "${params.gridss_jvmheap}" \
-    --jar "${params.gridss_jar}" \
+    --jvmheap "${params.mem_gridss}" \
+    --jar "${params.jar_gridss}" \
     --steps preprocess \
     --reference "${ref_data_genome_dir}/${ref_data_genome_fn}" \
     --workingdir gridss_preprocess/ \
     --threads "${params.cpus}" \
     "${normal_bam}" \
     "${tumour_bam}"
+  """
+
+  stub:
+  """
+  mkdir -p gridss_preprocess/
   """
 }
