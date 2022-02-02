@@ -42,7 +42,7 @@ pip install -r requirements.txt
 Configure
 ```bash
 NAME=gpl-nf
-VERSION=0.1.1
+VERSION=0.1.2
 URI_LOCAL="${NAME}:${VERSION}"
 AWS_PROVIDER_URL=843407916570.dkr.ecr.ap-southeast-2.amazonaws.com
 AWS_URI_REMOTE="${AWS_PROVIDER_URL}/${NAME}:${VERSION}"
@@ -93,15 +93,15 @@ aws lambda invoke \
 ## Lambda arguments
 | Argument                  | Description                                                                                                   |
 | ---                       | ---                                                                                                           |
-| `job_name`                | Name for Batch job. Must be ≤128 characters and match this regex `^\w[\w_-]*$`. [*optional*]                  |
-| `normal_name`             | Normal sample name. Must match **exactly** the normal name as it appears in provided the VCFs [*required*]    |
-| `tumour_name`             | Tumour sample name. Must match **exactly** the tumour name as it appears in provided the VCFs [*required*]    |
-| `tumour_bam`              | S3 path to normal BAM. Must be co-located with index. [*required*]                                            |
-| `normal_bam`              | S3 path to tumour BAM. Must be co-located with index. [*required*]                                            |
-| `tumour_smlv_vcf`         | S3 path to tumour small variant VCF. [*optional*]                                                             |
-| `tumour_sv_vcf`           | S3 path to tumour SV VCF. GRIDSS fragment extraction automatically run if provided. [*optional*]              |
-| `output_dir`              | S3 path to output directory. [*required*]                                                                     |
-| `docker_image_tag`        | Specific Docker image to use e.g. 0.0.3 [*optional*]                                                          |
-| `nextflow_args_str`       | Arguments to pass to Nextflow, must be wrapped in quotes e.g. "\"--mem_gridss 14G\"" [*optional*]             |
-| `instance_memory`         | Instance memory to provision                                                                                  |
-| `instance_vcpus`          | Instance vCPUs to provision. *Currently only accepting 8 vCPUs per job to avoid exceeding storage limits*     |
+| `job\_name`               | Name for Batch job. Must be ≤128 characters and match this regex `^\w[\w_-]*$`. [*optional*]                  |
+| `normal\_name`            | Normal sample name. Must match **exactly** the normal name as it appears in provided the VCFs [*required*]    |
+| `tumour\_name`            | Tumour sample name. Must match **exactly** the tumour name as it appears in provided the VCFs [*required*]    |
+| `tumour\_bam`             | S3 path to normal BAM. Must be co-located with index. [*required*]                                            |
+| `normal\_bam`             | S3 path to tumour BAM. Must be co-located with index. [*required*]                                            |
+| `tumour\_smlv\_vcf`       | S3 path to tumour small variant VCF. [*optional*]                                                             |
+| `tumour\_sv\_vcf`         | S3 path to tumour SV VCF. GRIDSS fragment extraction automatically run if provided. [*optional*]              |
+| `output\_dir`             | S3 path to output directory. [*required*]                                                                     |
+| `docker\_image\_tag`      | Specific Docker image to use e.g. "0.0.3". [*optional*]                                                       |
+| `nextflow\_args\_str`     | Arguments to pass to Nextflow, must be wrapped in quotes e.g. `"\"--mem\_gridss 14G\""`. [*optional*]         |
+| `instance\_memory`        | Instance memory to provision.                                                                                 |
+| `instance\_vcpus`         | Instance vCPUs to provision. *Currently only accepting 8 vCPUs per job to avoid exceeding storage limits*.    |
