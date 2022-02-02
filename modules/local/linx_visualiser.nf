@@ -15,6 +15,7 @@ process VISUALISER {
     -cp "${params.jar_linx}" \
     com.hartwig.hmftools.linx.visualiser.SvVisualiser \
       -sample "${meta.tumour_name}" \
+      -ref_genome_version 38 \
       -ensembl_data_dir "${ensembl_data_dir}" \
       -plot_out linx_visualiser/plot \
       -data_out linx_visualiser/data \
