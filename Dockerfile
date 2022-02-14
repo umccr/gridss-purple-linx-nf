@@ -1,4 +1,4 @@
-FROM gridss/gridss:2.13.1
+FROM gridss/gridss:2.13.2
 
 RUN \
   apt-get update && \
@@ -14,14 +14,14 @@ RUN \
 ARG GH_DOWNLOAD_URL_PREFIX=https://github.com/hartwigmedical/hmftools/releases/download
 RUN \
   parallel -j5 --progress wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/{}" ::: \
-    amber-v3.5/amber-3.5.jar \
+    amber-v3.7/amber.jar \
     cobalt-v1.11/cobalt-1.11.jar \
     gripss-v2.0/gripss.jar \
     purple-v3.2/purple_v3.2.jar \
     linx-v1.17/linx.jar
 
 # Install R dependencies for HMF tools
-# AMBER v3.5
+# AMBER v3.7
 #  - copynumber (bioconductor)
 # COBALT v1.11
 #  - copynumber (bioconductor)
