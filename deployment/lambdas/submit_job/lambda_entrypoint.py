@@ -6,70 +6,33 @@ import re
 import sys
 
 
-import boto3
 import botocore
+
+
+import util
 
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 
-def get_environment_variable(name):
-    if not (value := os.environ.get(name)):
-        LOGGER.critical(f'could not find env variable {name}')
-        sys.exit(1)
-    return value
-
-
-def get_resource(service_name, region_name=None):
-    try:
-        response = boto3.resource(service_name, region_name=region_name)
-    except Exception as err:
-        LOGGER.critical(f'could not get AWS resouce for {service_name}:\r{err}')
-        sys.exit(1)
-    return response
-
-
-def get_client(service_name, region_name=None):
-    try:
-        response = boto3.client(service_name, region_name=region_name)
-    except Exception as err:
-        LOGGER.critical(f'could not get AWS client for {service_name}:\r{err}')
-        sys.exit(1)
-    return response
-
-
-def get_context_info(context):
-    attributes = {
-        'function_name',
-        'function_version',
-        'invoked_function_arn',
-        'memory_limit_in_mb',
-        'aws_request_id',
-        'log_group_name',
-        'log_stream_name',
-    }
-    return {attr: getattr(context, attr) for attr in attributes}
-
-
 #SLACK_NOTIFY = get_environment_variable('SLACK_NOTIFY')
 #SLACK_HOST = get_environment_variable('SLACK_HOST')
 #SLACK_CHANNEL = get_environment_variable('SLACK_CHANNEL')
-REFERENCE_DATA = get_environment_variable('REFERENCE_DATA')
-BATCH_QUEUE_NAME = get_environment_variable('BATCH_QUEUE_NAME')
-JOB_DEFINITION_ARN = get_environment_variable('JOB_DEFINITION_ARN')
-JOB_DEFINITION_NAME = get_environment_variable('JOB_DEFINITION_NAME')
+REFERENCE_DATA = util.get_environment_variable('REFERENCE_DATA')
+BATCH_QUEUE_NAME = util.get_environment_variable('BATCH_QUEUE_NAME')
+JOB_DEFINITION_ARN = util.get_environment_variable('JOB_DEFINITION_ARN')
+JOB_DEFINITION_NAME = util.get_environment_variable('JOB_DEFINITION_NAME')
 
-CLIENT_BATCH = get_client('batch')
-CLIENT_ERC = client = boto3.client('ecr')
-CLIENT_S3 = get_client('s3')
-RESOURCE_S3 = get_resource('s3')
+CLIENT_BATCH = util.get_client('batch')
+CLIENT_ERC = util.get_client('ecr')
+CLIENT_S3 = util.get_client('s3')
+RESOURCE_S3 = util.get_resource('s3')
 
 FILE_EXTENSIONS = {
     'bam': {'bam'},
     'vcf': {'vcf', 'vcf.gz'},
 }
-
 
 
 # NOTE(SW): these should be provided from elsewhere
@@ -80,7 +43,7 @@ ERC_IMAGE_NAME = f'843407916570.dkr.ecr.ap-southeast-2.amazonaws.com/{ERC_REPO_N
 def main(event, context):
     # Log invocation data
     LOGGER.info(f'event: {json.dumps(event)}')
-    LOGGER.info(f'context: {json.dumps(get_context_info(context))}')
+    LOGGER.info(f'context: {json.dumps(util.get_context_info(context))}')
 
     # Check inputs and ensure that output directory is writable
     if response_error := validate_event_data(event):
