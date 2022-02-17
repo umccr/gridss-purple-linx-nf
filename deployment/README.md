@@ -42,7 +42,7 @@ pip install -r requirements.txt
 Configure
 ```bash
 NAME=gpl-nf
-VERSION=0.1.2
+VERSION=0.1.3
 URI_LOCAL="${NAME}:${VERSION}"
 AWS_PROVIDER_URL=843407916570.dkr.ecr.ap-southeast-2.amazonaws.com
 AWS_URI_REMOTE="${AWS_PROVIDER_URL}/${NAME}:${VERSION}"
