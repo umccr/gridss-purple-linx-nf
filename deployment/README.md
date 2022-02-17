@@ -17,7 +17,6 @@ When a run fails for any reason the wrapper Python script attempts to catch the 
 * [Prerequisites](#prerequisites)
 * [Deployment](#deployment)
 * [Usage](#usage)
-* [Lambda arguments](#lambda-arguments)
 
 ## Schematic
 <p align="center"><img src="images/schematic.png" width="80%"></p>
@@ -82,9 +81,49 @@ cdk deploy
 ```
 
 ## Usage
+### Automatic submission with identifiers
+A GPL job can be launched with either a subject identifier (e.g. `SBJ00001`) or both a tumour sample identifier and
+normal sample identifier (e.g. `PRJ000001`) using the `gpl_submit_job` Lambda function. This Lambda function queries the
+[data portal API](https://github.com/umccr/data-portal-apis) to automatically collect the necessary input data, which is
+then passed the the `gpl_submit_job_manual` Lambda function to launch the Batch job.
+
+When a subject has multiple tumour/normal samples, the Lambda function will refuse to run if provided a subject
+identifier and instead will require the user to explicitly provide the desired tumour sample identifier and normal
+sample identifier.
+
+```bash
+# Subject identifier
+aws lambda invoke \
+  --function-name gpl_submit_job \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{"subject_id": "SBJ00001"}' \
+  response.json
+
+# Sample identifiers
+aws lambda invoke \
+  --function-name gpl_submit_job \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{"tumor_sample_id": "PRJ000001", "normal_sample_id": "PRJ000002"}' \
+  response.json
+```
+
+#### Lambda arguments
+| Argument              | Description               |
+| ---                   | ---                       |
+| `subject_id`          | Subject identifier        |
+| `tumor_sample_id`     | Tumour sample identifier  |
+| `normal_sample_id`    | Normal sample identifier  |
+> Either `subject_id` or both `tumour_sample_id` and `normal_sample_id` are required. Subject and sample
+> identifiers are mutually exclusive.
+
+### Manual submission with filepaths
+For cases where additional control is needed over the inputs and configuration, a manual job submission Lambda function
+is available. This is useful for running samples that are not in the data portal or adjusting Nextflow pipeline
+parameters.
+
 ```bash
 aws lambda invoke \
-  --function-name gpl_job_submitter \
+  --function-name gpl_submit_job_manual \
   --cli-binary-format raw-in-base64-out \
   --payload '{
       "job_name": "seqcii_smlv_annotation",
@@ -100,18 +139,18 @@ aws lambda invoke \
 >Some temporary requirements:
 >* the `output_dir` parameter must be a 'subdirectory' of `s3://umccr-temp-dev/stephen/gpl_output/`
 
-## Lambda arguments
-| Argument                  | Description                                                                                                   |
-| ---                       | ---                                                                                                           |
-| `job\_name`               | Name for Batch job. Must be ≤128 characters and match this regex `^\w[\w_-]*$`. [*optional*]                  |
-| `normal\_name`            | Normal sample name. Must match **exactly** the normal name as it appears in provided the VCFs [*required*]    |
-| `tumour\_name`            | Tumour sample name. Must match **exactly** the tumour name as it appears in provided the VCFs [*required*]    |
-| `tumour\_bam`             | S3 path to normal BAM. Must be co-located with index. [*required*]                                            |
-| `normal\_bam`             | S3 path to tumour BAM. Must be co-located with index. [*required*]                                            |
-| `tumour\_smlv\_vcf`       | S3 path to tumour small variant VCF. [*optional*]                                                             |
-| `tumour\_sv\_vcf`         | S3 path to tumour SV VCF. GRIDSS fragment extraction automatically run if provided. [*optional*]              |
-| `output\_dir`             | S3 path to output directory. [*required*]                                                                     |
-| `docker\_image\_tag`      | Specific Docker image to use e.g. "0.0.3". [*optional*]                                                       |
-| `nextflow\_args\_str`     | Arguments to pass to Nextflow, must be wrapped in quotes e.g. `"\"--mem\_gridss 14G\""`. [*optional*]         |
-| `instance\_memory`        | Instance memory to provision.                                                                                 |
-| `instance\_vcpus`         | Instance vCPUs to provision. *Currently only accepting 8 vCPUs per job to avoid exceeding storage limits*.    |
+#### Lambda arguments
+| Argument              | Description                                                                                                   |
+| ---                   | ---                                                                                                           |
+| `job_name`            | Name for Batch job. Must be ≤128 characters and match this regex `^\w[\w_-]*$`. [*optional*]                  |
+| `normal_name`         | Normal sample name. Must match **exactly** the normal name as it appears in provided the VCFs [*required*]    |
+| `tumour_name`         | Tumour sample name. Must match **exactly** the tumour name as it appears in provided the VCFs [*required*]    |
+| `tumour_bam`          | S3 path to normal BAM. Must be co-located with index. [*required*]                                            |
+| `normal_bam`          | S3 path to tumour BAM. Must be co-located with index. [*required*]                                            |
+| `tumour_smlv_vcf`     | S3 path to tumour small variant VCF. [*optional*]                                                             |
+| `tumour_sv_vcf`       | S3 path to tumour SV VCF. GRIDSS fragment extraction automatically run if provided. [*optional*]              |
+| `output_dir`          | S3 path to output directory. [*required*]                                                                     |
+| `docker_image_tag`    | Specific Docker image to use e.g. "0.0.3". [*optional*]                                                       |
+| `nextflow_args_str`   | Arguments to pass to Nextflow, must be wrapped in quotes e.g. `"\"--mem_gridss 14G\""`. [*optional*]          |
+| `instance_memory`     | Instance memory to provision.                                                                                 |
+| `instance_vcpus`      | Instance vCPUs to provision. *Currently only accepting 8 vCPUs per job to avoid exceeding storage limits*.    |
