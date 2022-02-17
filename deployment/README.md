@@ -66,6 +66,16 @@ docker push "${AWS_URI_REMOTE}"
 rm /Users/stephen/.docker/config.json
 ```
 
+### Build Lambda layers
+```bash
+for dir in $(find $(pwd -P)/lambdas/layers/ -maxdepth 1 -mindepth 1 -type d); do
+  rm -r ${dir}/build/;
+  docker run --rm -v ${dir}:/local/ -w /local/ public.ecr.aws/sam/build-python3.8 \
+    pip install -r requirements.txt -t ./build/package/python/;
+  (cd ${dir}/build/package/; zip ../python38-${dir##*/}.zip $(find . -type f ! -path '*__pycache__*'));
+done
+```
+
 ### Deploy stack
 ```bash
 cdk deploy

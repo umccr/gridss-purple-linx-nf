@@ -137,6 +137,25 @@ class GplStack(core.Stack):
             ),
         )
 
+        # Lambda layers
+        runtime_layer = lmbda.LayerVersion(
+            self,
+            'RuntimeLambdaLayer',
+            code=lmbda.Code.from_asset(
+                'lambdas/layers/runtime/build/python38-runtime.zip'),
+            compatible_runtimes=[lmbda.Runtime.PYTHON_3_8],
+            description='A runtime layer for Python 3.8'
+        )
+
+        util_layer = lmbda.LayerVersion(
+            self,
+            'UtilLambdaLayer',
+            code=lmbda.Code.from_asset(
+                'lambdas/layers/util/build/python38-util.zip'),
+            compatible_runtimes=[lmbda.Runtime.PYTHON_3_8],
+            description='A shared utility layer for Python 3.8'
+        )
+
         # Lambda function: submit job (manual)
         # NOTE(SW): grant ro on specific buckets + prefixes
         submit_job_manual_lambda_role = iam.Role(
@@ -196,6 +215,9 @@ class GplStack(core.Stack):
                 #'SLACK_CHANNEL': props['slack_channel'],
             },
             role=submit_job_manual_lambda_role,
+            layers=[
+                util_layer,
+            ],
         )
 
         # Lambda function: submit job (automated input collection)
