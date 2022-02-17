@@ -5,7 +5,6 @@ RUN \
   apt-get install -y \
     cpanminus \
     libgd-dev \
-    libmagick++-dev \
     parallel && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
@@ -22,44 +21,39 @@ RUN \
 
 # Install R dependencies for HMF tools
 # AMBER v3.7
-#  - copynumber (bioconductor)
+#  - copynumber (bioconductor) [GRIDSS image]
 # COBALT v1.11
-#  - copynumber (bioconductor)
+#  - copynumber (bioconductor) [GRIDSS image]
 # PURPLE v3.2
-#  - dplyr
-#  - ggplot2
-#  - VariantAnnotation (bioconductor)
+#  - dplyr [GRIDSS image]
+#  - ggplot2 [GRIDSS image]
+#  - VariantAnnotation (bioconductor) [GRIDSS image]
 # Linx v1.17
 #   - cowplot
-#   - dplyr
-#   - ggplot2
+#   - dplyr [GRIDSS image]
+#   - ggplot2 [GRIDSS image]
+#   - Gviz (bioconductor)
 #   - magick
 #   - tidyr
-#   - Gviz (bioconductor)
-# NOTE: many R packages provisioned by GRIDSS Dockerfile, listing here to be explicit
 RUN \
   R -e " \
     install.packages( \
       pkgs=c( \
         'cowplot', \
-        'dplyr', \
-        'ggplot2', \
         'magick', \
         'tidyr' \
       ), \
       repos='https://cloud.r-project.org/' \
     ); \
-    library(BiocManager); \
     BiocManager::install( \
       pkgs=c( \
-        'copynumber', \
-        'Gviz', \
-        'VariantAnnotation' \
+        'Gviz' \
       ) \
     ) \
   "
 
 # Install Circos, required dependency for Linx visualisation
+# Conda and Ubuntu packages fail to install correctly
 RUN \
   mkdir -p /opt/circos/ && \
   cd /opt/circos/ && \
