@@ -427,10 +427,10 @@ def get_config_params(config_settings):
         'mem_linx = \'14G\'',
         'mem_purple = \'14G\'',
         'jar_amber = \'/opt/hmftools/amber.jar\'',
-        'jar_cobalt = \'/opt/hmftools/cobalt-1.11.jar\'',
+        'jar_cobalt = \'/opt/hmftools/cobalt.jar\'',
         'jar_gridss = \'/opt/gridss/gridss-2.13.2-gridss-jar-with-dependencies.jar\'',
         'jar_gripss = \'/opt/hmftools/gripss.jar\'',
-        'jar_purple = \'/opt/hmftools/purple_v3.2.jar\'',
+        'jar_purple = \'/opt/hmftools/purple.jar\'',
         'jar_linx = \'/opt/hmftools/linx.jar\'',
         'path_circos = \'/opt/circos/bin/circos\'',
     ]
