@@ -54,7 +54,7 @@ an example see: [`nextflow.config`](nextflow.config)). To execute the pipeline:
 | ---                   | ---                                   |
 | `nextflow/`           | Pipeline config, logs, and reports    |
 | `amber/`              | B-allele frequency                    |
-| `cobalt/`             | Tumour/normal read depth ratios       |
+| `cobalt/`             | Tumor/normal read depth ratios        |
 | `gridss_preprocess/`  | Pre-processed reads                   |
 | `gridss_assemble/`    | SV assemblies                         |
 | `gridss_call/`        | SV calls                              |
@@ -70,7 +70,7 @@ an example see: [`nextflow.config`](nextflow.config)). To execute the pipeline:
 | `linx_annotation/*tsv`                    | Grouped and annotated SV events           |
 | `linx_visualiser/plot/*png`               | SV event plots                            |
 | `purple/plot/*png`                        | Purity, ploidy, circos, etc plots         |
-| `purple/<tumour_name>.<vcf_type>.vcf.gz`  | VCF provided to and annotated by PURPLE   |
+| `purple/<tumor_name>.<vcf_type>.vcf.gz`  | VCF provided to and annotated by PURPLE    |
 | `gripps/<prefix>.gripps.filtered.vcf.gz`  | Hard filtered SV VCF                      |
 | `gripps/<prefix>.gripss.vcf.gz`           | Soft filtered SV VCF                      |
 | `nextflow/nextflow_log.txt`               | Pipeline log file                         |

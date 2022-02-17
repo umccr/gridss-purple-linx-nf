@@ -18,7 +18,7 @@ process GRIPSS {
   java \
     -Xmx${params.mem_gripss} \
     -jar "${params.jar_gripss}" \
-    -sample "${meta.tumour_name}" \
+    -sample "${meta.tumor_name}" \
     -reference "${meta.normal_name}" \
     -ref_genome "${ref_data_genome_dir}/${ref_data_genome_fn}" \
     -pon_sgl_file "${breakend_pon}" \
@@ -30,13 +30,13 @@ process GRIPSS {
 
   stub:
   """
-  cat <<EOF > ${meta.tumour_name}.gripss.filtered.vcf.gz
+  cat <<EOF > ${meta.tumor_name}.gripss.filtered.vcf.gz
   ##fileformat=VCFv4.1
   #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
   .	.	.	.	.	.	.
   EOF
-  touch ${meta.tumour_name}.gripss.filtered.vcf.gz.tbi
-  touch ${meta.tumour_name}.gripss.vcf.gz
-  touch ${meta.tumour_name}.gripss.vcf.gz.tbi
+  touch ${meta.tumor_name}.gripss.filtered.vcf.gz.tbi
+  touch ${meta.tumor_name}.gripss.vcf.gz
+  touch ${meta.tumor_name}.gripss.vcf.gz.tbi
   """
 }

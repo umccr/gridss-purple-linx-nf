@@ -17,9 +17,9 @@ process ANNOTATION {
   java \
     -Xmx${params.mem_linx} \
     -jar "${params.jar_linx}" \
-      -sample "${meta.tumour_name}" \
+      -sample "${meta.tumor_name}" \
       -ref_genome_version 38 \
-      -sv_vcf "${purple}/${meta.tumour_name}.purple.sv.vcf.gz" \
+      -sv_vcf "${purple}/${meta.tumor_name}.purple.sv.vcf.gz" \
       -purple_dir "${purple}" \
       -output_dir linx_annotation/ \
       -fragile_site_file "${fragile_sites}" \

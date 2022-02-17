@@ -52,17 +52,17 @@ def main(event, context):
         return response_error
 
     # Construct command
-    tumour_smlv_vcf_fp_arg = get_argument_string('tumour_smlv_vcf_fp', 'tumour_smlv_vcf', event)
-    tumour_sv_vcf_fp_arg = get_argument_string('tumour_sv_vcf_fp', 'tumour_sv_vcf', event)
+    tumor_smlv_vcf_fp_arg = get_argument_string('tumor_smlv_vcf_fp', 'tumor_smlv_vcf', event)
+    tumor_sv_vcf_fp_arg = get_argument_string('tumor_sv_vcf_fp', 'tumor_sv_vcf', event)
     nf_args_str_arg = get_argument_string('nextflow_args_str', 'nextflow_args_str', event)
     command = f'''
         /opt/gpl/run_gpl.py
-            --tumour_name {event["tumour_name"]}
+            --tumor_name {event["tumor_name"]}
             --normal_name {event["normal_name"]}
-            --tumour_bam_fp {event["tumour_bam"]}
+            --tumor_bam_fp {event["tumor_bam"]}
             --normal_bam_fp {event["normal_bam"]}
-            {tumour_smlv_vcf_fp_arg}
-            {tumour_sv_vcf_fp_arg}
+            {tumor_smlv_vcf_fp_arg}
+            {tumor_sv_vcf_fp_arg}
             --reference_data {REFERENCE_DATA}
             --output_dir {event["output_dir"]}
             --cpu_count {event["instance_vcpus"]}
@@ -80,7 +80,7 @@ def main(event, context):
 
     # Submit job
     if not (job_name := event.get('job_name')):
-        job_name = f'gpl__{event["tumour_name"]}__{event["normal_name"]}'
+        job_name = f'gpl__{event["tumor_name"]}__{event["normal_name"]}'
     instance_memory = int(event['instance_memory']) * 1000
     instance_vcpus = int(event['instance_vcpus'])
     response_job = CLIENT_BATCH.submit_job(
@@ -108,12 +108,12 @@ def main(event, context):
 def validate_event_data(event):
     arguments = {
         'job_name':                 {'required': False},
-        'tumour_name':              {'required': True},
+        'tumor_name':              {'required': True},
         'normal_name':              {'required': True},
-        'tumour_bam':               {'required': True,  's3_input': True, 'filetype': 'bam'},
+        'tumor_bam':               {'required': True,  's3_input': True, 'filetype': 'bam'},
         'normal_bam':               {'required': True,  's3_input': True, 'filetype': 'bam'},
-        'tumour_smlv_vcf':          {'required': False, 's3_input': True, 'filetype': 'vcf'},
-        'tumour_sv_vcf':            {'required': False, 's3_input': True, 'filetype': 'vcf'},
+        'tumor_smlv_vcf':          {'required': False, 's3_input': True, 'filetype': 'vcf'},
+        'tumor_sv_vcf':            {'required': False, 's3_input': True, 'filetype': 'vcf'},
         'output_dir':               {'required': True},
         'docker_image_tag':         {'required': False},
         'nextflow_args_str':        {'required': False},

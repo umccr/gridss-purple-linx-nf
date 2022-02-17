@@ -81,18 +81,18 @@ CLIENT_S3 = get_client('s3')
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--tumour_name', required=True,
-            help='Tumour name as if appears in VCFs')
+    parser.add_argument('--tumor_name', required=True,
+            help='Tumor name as if appears in VCFs')
     parser.add_argument('--normal_name', required=True,
             help='Normal name as if appears in VCFs')
-    parser.add_argument('--tumour_bam_fp', required=True,
-            help='Tumour BAM S3 path')
+    parser.add_argument('--tumor_bam_fp', required=True,
+            help='Tumor BAM S3 path')
     parser.add_argument('--normal_bam_fp', required=True,
             help='Normal BAM S3 path')
-    parser.add_argument('--tumour_smlv_vcf_fp', required=False,
-            help='Tumour small variant VCF S3 path')
-    parser.add_argument('--tumour_sv_vcf_fp', required=False,
-            help='Tumour structural variant VCF S3 path (generally Manta calls)')
+    parser.add_argument('--tumor_smlv_vcf_fp', required=False,
+            help='Tumor small variant VCF S3 path')
+    parser.add_argument('--tumor_sv_vcf_fp', required=False,
+            help='Tumor structural variant VCF S3 path (generally Manta calls)')
     parser.add_argument('--reference_data', required=True,
             help='Reference data directory S3 path')
     parser.add_argument('--output_dir', required=True,
@@ -135,33 +135,33 @@ def main():
 
     # Ensure we have matching sample names in VCFs; stream and decompress to retrieve VCF header,
     # then compare VCF sample column names to input sample names
-    # Tumour small variants VCF
-    if args.tumour_smlv_vcf_fp:
-        tumour_smlv_sample_names_input = (('tumour', args.tumour_name), ('normal', args.normal_name))
-        tumour_smlv_vcf_header = get_vcf_header(args.tumour_smlv_vcf_fp)
-        check_vcf_ad_field(args.tumour_smlv_vcf_fp, tumour_smlv_vcf_header)
-        check_vcf_sample_names(tumour_smlv_sample_names_input, args.tumour_smlv_vcf_fp, tumour_smlv_vcf_header)
-    # Tumour structural variants VCF
-    if args.tumour_sv_vcf_fp:
-        tumour_sv_sample_names_input = (('tumour', args.tumour_name), ('normal', args.normal_name))
-        tumour_sv_vcf_header = get_vcf_header(args.tumour_sv_vcf_fp)
-        check_vcf_sample_names(tumour_sv_sample_names_input, args.tumour_sv_vcf_fp, tumour_sv_vcf_header)
+    # Tumor small variants VCF
+    if args.tumor_smlv_vcf_fp:
+        tumor_smlv_sample_names_input = (('tumor', args.tumor_name), ('normal', args.normal_name))
+        tumor_smlv_vcf_header = get_vcf_header(args.tumor_smlv_vcf_fp)
+        check_vcf_ad_field(args.tumor_smlv_vcf_fp, tumor_smlv_vcf_header)
+        check_vcf_sample_names(tumor_smlv_sample_names_input, args.tumor_smlv_vcf_fp, tumor_smlv_vcf_header)
+    # Tumor structural variants VCF
+    if args.tumor_sv_vcf_fp:
+        tumor_sv_sample_names_input = (('tumor', args.tumor_name), ('normal', args.normal_name))
+        tumor_sv_vcf_header = get_vcf_header(args.tumor_sv_vcf_fp)
+        check_vcf_sample_names(tumor_sv_sample_names_input, args.tumor_sv_vcf_fp, tumor_sv_vcf_header)
 
     # Pull data - sample (including BAM indices) and then reference
     # This is decoupled from Nextflow to ease debugging and transparency for errors related to this
     # operation.
     sample_data_local_paths = pull_sample_data(
-        args.tumour_bam_fp,
+        args.tumor_bam_fp,
         args.normal_bam_fp,
-        args.tumour_smlv_vcf_fp,
-        args.tumour_sv_vcf_fp
+        args.tumor_smlv_vcf_fp,
+        args.tumor_sv_vcf_fp
     )
     execute_command(f'aws s3 sync {args.reference_data} {REFERENCE_LOCAL_DIR}')
 
     # Create nextflow configuration file
     # Pack settings into dict for readability
     config_settings = {
-        'tumour_name': args.tumour_name,
+        'tumor_name': args.tumor_name,
         'normal_name': args.normal_name,
         'sample_data_local_paths': sample_data_local_paths,
         'cpu_count': args.cpu_count,
@@ -330,18 +330,18 @@ def check_vcf_ad_field(vcf_fp, vcf_header):
         sys.exit(1)
 
 
-def pull_sample_data(tumour_bam_fp, normal_bam_fp, tumour_smlv_vcf_fp, tumour_sv_vcf_fp):
+def pull_sample_data(tumor_bam_fp, normal_bam_fp, tumor_smlv_vcf_fp, tumor_sv_vcf_fp):
     # Set files to pull; add BAM indexes (required for AMBER, COBALT, GRIDSS read extraction)
     s3_paths = {
-        'tumour_bam_fp': tumour_bam_fp,
+        'tumor_bam_fp': tumor_bam_fp,
         'normal_bam_fp': normal_bam_fp,
-        'tumour_bam_index_fp': f'{tumour_bam_fp}.bai',
+        'tumor_bam_index_fp': f'{tumor_bam_fp}.bai',
         'normal_bam_index_fp': f'{normal_bam_fp}.bai',
     }
-    if tumour_smlv_vcf_fp:
-        s3_paths['tumour_smlv_vcf_fp'] = tumour_smlv_vcf_fp
-    if tumour_sv_vcf_fp:
-        s3_paths['tumour_sv_vcf_fp'] = tumour_sv_vcf_fp
+    if tumor_smlv_vcf_fp:
+        s3_paths['tumor_smlv_vcf_fp'] = tumor_smlv_vcf_fp
+    if tumor_sv_vcf_fp:
+        s3_paths['tumor_sv_vcf_fp'] = tumor_sv_vcf_fp
     # Download files
     local_paths = dict()
     for input_type, s3_path in s3_paths.items():
@@ -390,14 +390,14 @@ def get_config(config_settings):
 def get_config_params(config_settings):
     sample_data_local_paths = config_settings['sample_data_local_paths']
     io_lines = [
-        f'tumour_name = \'{config_settings["tumour_name"]}\'',
+        f'tumor_name = \'{config_settings["tumor_name"]}\'',
         f'normal_name = \'{config_settings["normal_name"]}\'',
-        f'tumour_bam = \'{sample_data_local_paths["tumour_bam_fp"]}\'',
+        f'tumor_bam = \'{sample_data_local_paths["tumor_bam_fp"]}\'',
         f'normal_bam = \'{sample_data_local_paths["normal_bam_fp"]}\'',
-        f'tumour_bam_index = \'{sample_data_local_paths["tumour_bam_index_fp"]}\'',
+        f'tumor_bam_index = \'{sample_data_local_paths["tumor_bam_index_fp"]}\'',
         f'normal_bam_index = \'{sample_data_local_paths["normal_bam_index_fp"]}\'',
-        f'tumour_smlv_vcf = \'{sample_data_local_paths.get("tumour_smlv_vcf_fp", "NOFILE")}\'',
-        f'tumour_sv_vcf = \'{sample_data_local_paths.get("tumour_sv_vcf_fp", "NOFILE")}\'',
+        f'tumor_smlv_vcf = \'{sample_data_local_paths.get("tumor_smlv_vcf_fp", "NOFILE")}\'',
+        f'tumor_sv_vcf = \'{sample_data_local_paths.get("tumor_sv_vcf_fp", "NOFILE")}\'',
         f'output_dir = \'{OUTPUT_LOCAL_DIR}\'',
         f'publish_mode = \'symlink\'',
     ]
@@ -427,10 +427,10 @@ def get_config_params(config_settings):
         'mem_linx = \'14G\'',
         'mem_purple = \'14G\'',
         'jar_amber = \'/opt/hmftools/amber.jar\'',
-        'jar_cobalt = \'/opt/hmftools/cobalt-1.11.jar\'',
+        'jar_cobalt = \'/opt/hmftools/cobalt.jar\'',
         'jar_gridss = \'/opt/gridss/gridss-2.13.2-gridss-jar-with-dependencies.jar\'',
         'jar_gripss = \'/opt/hmftools/gripss.jar\'',
-        'jar_purple = \'/opt/hmftools/purple_v3.2.jar\'',
+        'jar_purple = \'/opt/hmftools/purple.jar\'',
         'jar_linx = \'/opt/hmftools/linx.jar\'',
         'path_circos = \'/opt/circos/bin/circos\'',
     ]
