@@ -85,9 +85,9 @@ Assumes the pipeline will be executed using the provided Docker image
 * [Nextflow](https://www.nextflow.io/) (v21.04.3)
 
 ### GPL toolkit
-* [AMBER](https://github.com/hartwigmedical/hmftools/blob/master/amber/) (v3.5)
+* [AMBER](https://github.com/hartwigmedical/hmftools/blob/master/amber/) (v3.7)
 * [COBALT](https://github.com/hartwigmedical/hmftools/blob/master/cobalt/) (v1.11)
-* [GRIDSS](https://github.com/PapenfussLab/gridss) (v2.13.1)
+* [GRIDSS](https://github.com/PapenfussLab/gridss) (v2.13.2)
 * [GRIPSS](https://github.com/hartwigmedical/hmftools/blob/master/gripss/) (v2.0)
 * [PURPLE](https://github.com/hartwigmedical/hmftools/blob/master/purple/) (v3.2)
 * [Linx](https://github.com/hartwigmedical/hmftools/blob/master/linx/) (v1.17)

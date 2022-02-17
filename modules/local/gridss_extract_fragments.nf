@@ -1,12 +1,9 @@
 process EXTRACT_FRAGMENTS {
-  publishDir "${params.output_dir}", pattern: 'gridss_extract_fragments', mode: "${params.publish_mode}"
-
   input:
   tuple val(meta), path(bam), path(bai), path(manta_vcf)
 
   output:
-  tuple val(meta), path("gridss_extract_fragments/${bam.getSimpleName()}.targeted.bam"), emit: bam
-  path('gridss_extract_fragments/')
+  tuple val(meta), path("gridss_extract_fragments/${bam.getSimpleName()}.targeted.bam")
 
   script:
   output_fp = "gridss_extract_fragments/${bam.getSimpleName()}.targeted.bam"

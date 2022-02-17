@@ -1,6 +1,4 @@
 process PREPROCESS {
-  publishDir "${params.output_dir}", pattern: 'gridss_preprocess', mode: "${params.publish_mode}"
-
   input:
   tuple val(meta), path(tumour_bam), path(normal_bam)
   path(ref_data_genome_dir)

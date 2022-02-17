@@ -1,5 +1,5 @@
 process GRIPSS {
-  publishDir "${params.output_dir}", mode: "${params.publish_mode}", saveAs: { filename -> "gripss/${filename}" }
+  publishDir "${params.output_dir}", mode: "${params.publish_mode}", saveAs: { fp -> "gripss/${fp}" }
 
   input:
   tuple val(meta), path(gridss_vcf)

@@ -1,6 +1,4 @@
 process COBALT {
-  publishDir "${params.output_dir}", mode: "${params.publish_mode}"
-
   input:
   tuple val(meta), path(tumour_bam), path(normal_bam), path(tumour_bai), path(normal_bai)
   path(gc_profile)

@@ -1,6 +1,4 @@
 process CALL {
-  publishDir "${params.output_dir}", pattern: 'gridss_call', mode: "${params.publish_mode}"
-
   input:
   tuple val(meta), path(tumour_bam), path(normal_bam), path(gridss_assembled)
   path(ref_data_genome_dir)
@@ -8,8 +6,7 @@ process CALL {
   path(blacklist)
 
   output:
-  tuple val(meta), path('gridss_call/sv_vcf.vcf.gz'), emit: vcf
-  path('gridss_call/')
+  tuple val(meta), path('gridss_call/sv_vcf.vcf.gz')
 
   script:
   output_dir = 'gridss_call/'

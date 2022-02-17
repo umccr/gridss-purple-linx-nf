@@ -1,6 +1,4 @@
 process ASSEMBLE {
-  publishDir "${params.output_dir}", pattern: 'gridss_assemble', mode: "${params.publish_mode}"
-
   input:
   tuple val(meta), path(tumour_bam), path(normal_bam), val(gridss_preprocessed)
 
