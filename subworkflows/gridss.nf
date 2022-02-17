@@ -52,7 +52,7 @@ workflow GRIDSS {
     ch_bams_tumour = Channel.empty()
       .concat(
         ch_bams_tumour_no_sv_vcfs,
-        EXTRACT_FRAGMENTS.out.bam,
+        EXTRACT_FRAGMENTS.out,
       )
 
     // Format: [meta, tumour_bam, normal_bam]
@@ -94,7 +94,7 @@ workflow GRIDSS {
 
     // Filter any GRIDSS VCFs that have no records
     // Format: [meta, vcf]
-    ch_gridss_svs = CALL.out.vcf.filter { meta, vcf_fp ->
+    ch_gridss_svs = CALL.out.filter { meta, vcf_fp ->
         return has_records_vcf(vcf_fp)
       }
 

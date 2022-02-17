@@ -1,12 +1,12 @@
 process ANNOTATE {
-  publishDir "${params.output_dir}", pattern: 'gridss_annotate', mode: "${params.publish_mode}"
+  publishDir "${params.output_dir}", mode: "${params.publish_mode}", saveAs: { fp -> "gridss/${file(fp).getName()}" }
 
   input:
   tuple val(meta), path(gridss_vcf)
 
   output:
   tuple val(meta), path('gridss_annotate/sv_vcf.annotated.vcf.gz'), emit: vcf
-  path('gridss_annotate/')
+  path('gridss_annotate/*')
 
   script:
   """
