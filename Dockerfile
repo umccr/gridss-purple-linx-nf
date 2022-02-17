@@ -10,9 +10,10 @@ RUN \
   rm -rf /var/lib/apt/lists/*
 
 # Download HMF tools
-ARG GH_DOWNLOAD_URL_PREFIX=https://github.com/hartwigmedical/hmftools/releases/download
+ARG GH_BASE_URL=https://github.com/hartwigmedical/hmftools/releases/download
 RUN \
-  parallel -j5 --progress wget --quiet --directory-prefix /opt/hmftools/ "${GH_DOWNLOAD_URL_PREFIX}/{}" ::: \
+  mkdir -p /opt/hmftools/ && \
+  parallel -j5 --progress 'wget -q -O /opt/hmftools/$(echo {/} | sed "s/[-_].\+/.jar/") "${GH_BASE_URL}/{}"' ::: \
     amber-v3.7/amber.jar \
     cobalt-v1.11/cobalt-1.11.jar \
     gripss-v2.0/gripss.jar \
@@ -20,15 +21,15 @@ RUN \
     linx-v1.17/linx.jar
 
 # Install R dependencies for HMF tools
-# AMBER v3.7
+# AMBER
 #  - copynumber (bioconductor) [GRIDSS image]
-# COBALT v1.11
+# COBALT
 #  - copynumber (bioconductor) [GRIDSS image]
-# PURPLE v3.2
+# PURPLE
 #  - dplyr [GRIDSS image]
 #  - ggplot2 [GRIDSS image]
 #  - VariantAnnotation (bioconductor) [GRIDSS image]
-# Linx v1.17
+# Linx
 #   - cowplot
 #   - dplyr [GRIDSS image]
 #   - ggplot2 [GRIDSS image]
