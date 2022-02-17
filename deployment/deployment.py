@@ -137,11 +137,11 @@ class GplStack(core.Stack):
             ),
         )
 
-        # Lambda function: submit job
+        # Lambda function: submit job (manual)
         # NOTE(SW): grant ro on specific buckets + prefixes
-        submit_job_lambda_role = iam.Role(
+        submit_job_manual_lambda_role = iam.Role(
             self,
-            'SubmitJobLambdaRole',
+            'SubmitJobManualLambdaRole',
             assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
@@ -150,7 +150,7 @@ class GplStack(core.Stack):
             ]
         )
 
-        submit_job_lambda_role.add_to_policy(
+        submit_job_manual_lambda_role.add_to_policy(
             iam.PolicyStatement(
                 actions=[
                     'batch:DeregisterJobDefinition',
@@ -164,14 +164,14 @@ class GplStack(core.Stack):
             )
         )
 
-        submit_job_lambda_role.add_to_policy(
+        submit_job_manual_lambda_role.add_to_policy(
             iam.PolicyStatement(
                 actions=['batch:DescribeJobDefinitions'],
                 resources=['*']
             )
         )
 
-        submit_job_lambda_role.add_to_policy(
+        submit_job_manual_lambda_role.add_to_policy(
             iam.PolicyStatement(
                 actions=['ecr:ListImages'],
                 # NOTE(SW): this should be defined elsewhere
@@ -179,13 +179,13 @@ class GplStack(core.Stack):
             )
         )
 
-        submit_job_lambda = lmbda.Function(
+        submit_job_manual_lambda = lmbda.Function(
             self,
-            'SubmitJobLambda',
-            function_name=f'{props["namespace"]}_job_submitter',
+            'SubmitJobManualLambda',
+            function_name=f'{props["namespace"]}_submit_job_manual',
             handler='lambda_entrypoint.main',
             runtime=lmbda.Runtime.PYTHON_3_8,
-            code=lmbda.Code.from_asset('lambdas/submit_job/'),
+            code=lmbda.Code.from_asset('lambdas/submit_job_manual/'),
             environment={
                 'REFERENCE_DATA': props['reference_data'],
                 'BATCH_QUEUE_NAME': props['batch_queue_name'],
@@ -195,13 +195,56 @@ class GplStack(core.Stack):
                 #'SLACK_HOST': props['slack_host'],
                 #'SLACK_CHANNEL': props['slack_channel'],
             },
+            role=submit_job_manual_lambda_role,
+        )
+
+        # Lambda function: submit job (automated input collection)
+        submit_job_lambda_role = iam.Role(
+            self,
+            'SubmitJobLambdaRole',
+            assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
+            managed_policies=[
+                iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
+                iam.ManagedPolicy.from_aws_managed_policy_name('AmazonSSMReadOnlyAccess'),
+            ]
+        )
+
+        submit_job_lambda_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
+                    'lambda:InvokeFunction',
+                ],
+                resources=[
+                    submit_job_manual_lambda.function_arn,
+                ]
+            )
+        )
+
+        submit_job_lambda = lmbda.Function(
+            self,
+            'SubmitJobLambda',
+            function_name=f'{props["namespace"]}_submit_job',
+            handler='lambda_entrypoint.main',
+            runtime=lmbda.Runtime.PYTHON_3_8,
+            code=lmbda.Code.from_asset('lambdas/submit_job/'),
+            environment={
+                'PORTAL_API_BASE_URL': props['portal_api_base_url'],
+                'SUBMISSION_LAMBDA_ARN': submit_job_manual_lambda.function_arn,
+                'OUTPUT_PREFIX': props['output_prefix'],
+                'OUTPUT_BUCKET': props['output_bucket'],
+            },
             role=submit_job_lambda_role,
+            timeout=core.Duration.seconds(60),
+            layers=[
+                runtime_layer,
+                util_layer,
+            ],
         )
 
         # S3 output directory
         roles_s3_write_access = [
             batch_instance_role,
-            submit_job_lambda_role,
+            submit_job_manual_lambda_role,
         ]
         umccr_temp_dev_bucket = s3.Bucket.from_bucket_name(
             self,
@@ -211,5 +254,5 @@ class GplStack(core.Stack):
         for role in roles_s3_write_access:
             umccr_temp_dev_bucket.grant_read_write(
                 role,
-                objects_key_pattern=props['output_prefix'],
+                objects_key_pattern=f'{props["output_prefix"]}/*',
             )

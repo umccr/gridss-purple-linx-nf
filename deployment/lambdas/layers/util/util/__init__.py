@@ -2,7 +2,7 @@ import logging
 import os
 
 
-import botot3
+import boto3
 
 
 LOGGER = logging.getLogger(__name__)
@@ -15,6 +15,15 @@ def get_environment_variable(name):
         LOGGER.critical(msg)
         raise ValueError(msg)
     return value
+
+
+def get_ssm_parameter(name, client, decrypt=True):
+    response = client.get_parameter(Name=name, WithDecryption=decrypt)
+    if not (pm_data := response.get('Parameter')):
+        msg = f'could not get SSM parameter {name}'
+        LOGGER.critical(msg)
+        raise ValueError(msg)
+    return pm_data['Value']
 
 
 def get_resource(service_name, region_name=None):

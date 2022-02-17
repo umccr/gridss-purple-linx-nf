@@ -23,7 +23,8 @@ stack_props = {
     'slack_host': 'hooks.slack.com',
     'slack_channel': '#arteria-dev',
     'output_bucket': 'umccr-temp-dev',
-    'output_prefix': 'stephen/gpl_output/*',
+    'output_prefix': 'stephen/gpl_output',
+    'portal_api_base_url': 'https://api.data.prod.umccr.org',
     'batch_resource_tags': tags,
 }
 aws_env = {
