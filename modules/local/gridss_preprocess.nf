@@ -1,6 +1,6 @@
 process PREPROCESS {
   input:
-  tuple val(meta), path(tumour_bam), path(normal_bam)
+  tuple val(meta), path(tumor_bam), path(normal_bam)
   path(ref_data_genome_dir)
   val(ref_data_genome_fn)
 
@@ -17,7 +17,7 @@ process PREPROCESS {
     --workingdir gridss_preprocess/ \
     --threads "${params.cpus}" \
     "${normal_bam}" \
-    "${tumour_bam}"
+    "${tumor_bam}"
   """
 
   stub:

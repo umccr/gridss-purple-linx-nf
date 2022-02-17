@@ -87,7 +87,7 @@ def validate_event_data(event):
         msg = f'got {len(args_unknown)} unknown arguments:\r\t{args_unknown_str}'
         LOGGER.critical(msg)
         raise ValueError(msg)
-    sample_id_provided = ('tumour_sampe_id' in event) or ('normal_sample_id' in event)
+    sample_id_provided = ('tumor_sampe_id' in event) or ('normal_sample_id' in event)
     subject_id_provided = 'subject_id' in event
     if not (subject_id_provided ^ sample_id_provided):
         msg = 'You must provide either \'subject_id\' or both \'tumor_sample_id\' and \'normal_sample_id\''
@@ -194,12 +194,12 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id):
     output_base_dir = f's3://{OUTPUT_BUCKET}/{OUTPUT_PREFIX}/runs'
     return {
         'job_name': f'gpl_shortcut_{identifier}',
-        'tumour_name': f'{subject_id}_{tumor_sample_md["sample_id"]}_{tumor_sample_md["library_id"]}',
+        'tumor_name': f'{subject_id}_{tumor_sample_md["sample_id"]}_{tumor_sample_md["library_id"]}',
         'normal_name': f'{subject_id}_{normal_sample_md["sample_id"]}_{normal_sample_md["library_id"]}',
-        'tumour_bam': get_file_path(bam_tumor_pattern, subject_id),
+        'tumor_bam': get_file_path(bam_tumor_pattern, subject_id),
         'normal_bam': get_file_path(bam_normal_pattern, subject_id),
-        'tumour_smlv_vcf': get_file_path(f'{subject_id}-ensemble-annotated.vcf.gz$', subject_id),
-        'tumour_sv_vcf': get_file_path(f'{subject_id}-manta.vcf.gz$', subject_id),
+        'tumor_smlv_vcf': get_file_path(f'{subject_id}-ensemble-annotated.vcf.gz$', subject_id),
+        'tumor_sv_vcf': get_file_path(f'{subject_id}-manta.vcf.gz$', subject_id),
         'output_dir': f'{output_base_dir}/{identifier}_shortcut/',
     }
 

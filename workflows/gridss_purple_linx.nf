@@ -30,14 +30,14 @@ include { has_records_vcf } from '../lib/utility.groovy'
 
 // Input sample data
 meta = [
- 'tumour_name': params.tumour_name,
+ 'tumor_name': params.tumor_name,
  'normal_name': params.normal_name,
 ]
 ch_meta = Channel.value(meta)
-ch_input_bams_tumour_and_index = Channel.of([
+ch_input_bams_tumor_and_index = Channel.of([
   meta,
-  file(params.tumour_bam),
-  file(params.tumour_bam_index),
+  file(params.tumor_bam),
+  file(params.tumor_bam_index),
 ])
 ch_input_bams_normal_and_index = Channel.of([
   meta,
@@ -46,11 +46,11 @@ ch_input_bams_normal_and_index = Channel.of([
 ])
 ch_input_smlv_vcfs = Channel.of([
   meta,
-  file(params.tumour_smlv_vcf),
+  file(params.tumor_smlv_vcf),
 ])
 ch_input_sv_vcfs = Channel.of([
   meta,
-  file(params.tumour_sv_vcf),
+  file(params.tumor_sv_vcf),
 ])
 
 
@@ -78,15 +78,15 @@ ref_data_driver_gene_panel = file(params.ref_data_driver_gene_panel)
 
 workflow GPL {
   // Create interleaved BAM + index channel for AMBER and COBALT
-  // Format: [meta, tumour_bam, normal_bam, tumour_bam_index, normal_bam_index]
+  // Format: [meta, tumor_bam, normal_bam, tumor_bam_index, normal_bam_index]
   ch_input_bams = group_by_meta_interleave([
-    ch_input_bams_tumour_and_index,
+    ch_input_bams_tumor_and_index,
     ch_input_bams_normal_and_index,
   ])
   AMBER(ch_input_bams, ref_data_amber_loci)
   COBALT(ch_input_bams, ref_data_cobalt_gc_profile)
   GRIDSS(
-    ch_input_bams_tumour_and_index,
+    ch_input_bams_tumor_and_index,
     // Format: [meta, bam]
     ch_input_bams_normal_and_index.map { it[0..1] },
     ch_input_sv_vcfs,
@@ -111,7 +111,7 @@ workflow GPL {
       return has_records_vcf(vcf_fp)
     }
     .map { it[0] }
-  // Format: [meta, amber, cobalt, gripss_soft_bam, gripss_soft_bai, gripss_hard_bam, gripss_hard_bai, tumour_smvl_vcf]
+  // Format: [meta, amber, cobalt, gripss_soft_bam, gripss_soft_bai, gripss_hard_bam, gripss_hard_bai, tumor_smvl_vcf]
   ch_purple_input_all = group_by_meta([
     AMBER.out,
     COBALT.out,
@@ -119,7 +119,7 @@ workflow GPL {
     GRIPSS.out.hard,
     ch_input_smlv_vcfs,
   ])
-  // Format: [meta, amber, cobalt, gripss_soft_bam, gripss_soft_bai, gripss_hard_bam, gripss_hard_bai, tumour_smvl_vcf]
+  // Format: [meta, amber, cobalt, gripss_soft_bam, gripss_soft_bai, gripss_hard_bam, gripss_hard_bai, tumor_smvl_vcf]
   ch_purple_input = ch_purple_input_all
     .join(ch_sample_has_filtered_svs)
   PURPLE(
@@ -134,7 +134,7 @@ workflow GPL {
   // Check that PURPLE created SV VCFs and that these contain at least one record
   // Format: [meta, purple]
   ch_linx_input = PURPLE.out.filter { meta, purple_dir ->
-      def vcf_fp = "${purple_dir}/${meta.tumour_name}.purple.sv.vcf.gz"
+      def vcf_fp = "${purple_dir}/${meta.tumor_name}.purple.sv.vcf.gz"
       return has_records_vcf(vcf_fp)
     }
   LINX(

@@ -1,6 +1,6 @@
 process ASSEMBLE {
   input:
-  tuple val(meta), path(tumour_bam), path(normal_bam), val(gridss_preprocessed)
+  tuple val(meta), path(tumor_bam), path(normal_bam), val(gridss_preprocessed)
 
   path(ref_data_genome_dir)
   val(ref_data_genome_fn)
@@ -25,14 +25,14 @@ process ASSEMBLE {
     --jvmheap "${params.mem_gridss}" \
     --jar "${params.jar_gridss}" \
     --steps assemble \
-    --labels "${meta.normal_name},${meta.tumour_name}" \
+    --labels "${meta.normal_name},${meta.tumor_name}" \
     --reference "${ref_data_genome_dir}/${ref_data_genome_fn}" \
     --blacklist "${blacklist}" \
     --workingdir "${output_dir}/work" \
     --assembly "${output_dir}/sv_assemblies.bam" \
     --threads "${params.cpus}" \
     "${normal_bam}" \
-    "${tumour_bam}"
+    "${tumor_bam}"
   """
 
   stub:

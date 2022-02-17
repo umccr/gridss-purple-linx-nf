@@ -82,13 +82,13 @@ cdk deploy
 
 ## Usage
 ### Automatic submission with identifiers
-A GPL job can be launched with either a subject identifier (e.g. `SBJ00001`) or both a tumour sample identifier and
+A GPL job can be launched with either a subject identifier (e.g. `SBJ00001`) or both a tumor sample identifier and
 normal sample identifier (e.g. `PRJ000001`) using the `gpl_submit_job` Lambda function. This Lambda function queries the
 [data portal API](https://github.com/umccr/data-portal-apis) to automatically collect the necessary input data, which is
 then passed the the `gpl_submit_job_manual` Lambda function to launch the Batch job.
 
-When a subject has multiple tumour/normal samples, the Lambda function will refuse to run if provided a subject
-identifier and instead will require the user to explicitly provide the desired tumour sample identifier and normal
+When a subject has multiple tumor/normal samples, the Lambda function will refuse to run if provided a subject
+identifier and instead will require the user to explicitly provide the desired tumor sample identifier and normal
 sample identifier.
 
 ```bash
@@ -111,9 +111,9 @@ aws lambda invoke \
 | Argument              | Description               |
 | ---                   | ---                       |
 | `subject_id`          | Subject identifier        |
-| `tumor_sample_id`     | Tumour sample identifier  |
+| `tumor_sample_id`     | Tumor sample identifier   |
 | `normal_sample_id`    | Normal sample identifier  |
-> Either `subject_id` or both `tumour_sample_id` and `normal_sample_id` are required. Subject and sample
+> Either `subject_id` or both `tumor_sample_id` and `normal_sample_id` are required. Subject and sample
 > identifiers are mutually exclusive.
 
 ### Manual submission with filepaths
@@ -127,11 +127,11 @@ aws lambda invoke \
   --cli-binary-format raw-in-base64-out \
   --payload '{
       "job_name": "seqcii_smlv_annotation",
-      "tumour_name": "SEQC-II_Tumor_50pc",
+      "tumor_name": "SEQC-II_Tumor_50pc",
       "normal_name": "SEQC-II_Normal",
-      "tumour_bam": "s3://bucket-name/key-prefix/SEQC-II_Tumor_50pc-ready.bam",
+      "tumor_bam": "s3://bucket-name/key-prefix/SEQC-II_Tumor_50pc-ready.bam",
       "normal_bam": "s3://bucket-name/key-prefix/SEQC-II_Normal-ready.bam",
-      "tumour_smlv_vcf": "s3://bucket-name/key-prefix/SEQC-II-50pc-ensemble-annotated.vcf.gz",
+      "tumor_smlv_vcf": "s3://bucket-name/key-prefix/SEQC-II-50pc-ensemble-annotated.vcf.gz",
       "output_dir": "s3://bucket-name/key-prefix/output/"
     }' \
   response.json
@@ -144,11 +144,11 @@ aws lambda invoke \
 | ---                   | ---                                                                                                           |
 | `job_name`            | Name for Batch job. Must be ≤128 characters and match this regex `^\w[\w_-]*$`. [*optional*]                  |
 | `normal_name`         | Normal sample name. Must match **exactly** the normal name as it appears in provided the VCFs [*required*]    |
-| `tumour_name`         | Tumour sample name. Must match **exactly** the tumour name as it appears in provided the VCFs [*required*]    |
-| `tumour_bam`          | S3 path to normal BAM. Must be co-located with index. [*required*]                                            |
-| `normal_bam`          | S3 path to tumour BAM. Must be co-located with index. [*required*]                                            |
-| `tumour_smlv_vcf`     | S3 path to tumour small variant VCF. [*optional*]                                                             |
-| `tumour_sv_vcf`       | S3 path to tumour SV VCF. GRIDSS fragment extraction automatically run if provided. [*optional*]              |
+| `tumor_name`          | Tumor sample name. Must match **exactly** the tumor name as it appears in provided the VCFs [*required*]      |
+| `tumor_bam`           | S3 path to normal BAM. Must be co-located with index. [*required*]                                            |
+| `normal_bam`          | S3 path to tumor BAM. Must be co-located with index. [*required*]                                             |
+| `tumor_smlv_vcf`      | S3 path to tumor small variant VCF. [*optional*]                                                              |
+| `tumor_sv_vcf`        | S3 path to tumor SV VCF. GRIDSS fragment extraction automatically run if provided. [*optional*]               |
 | `output_dir`          | S3 path to output directory. [*required*]                                                                     |
 | `docker_image_tag`    | Specific Docker image to use e.g. "0.0.3". [*optional*]                                                       |
 | `nextflow_args_str`   | Arguments to pass to Nextflow, must be wrapped in quotes e.g. `"\"--mem_gridss 14G\""`. [*optional*]          |

@@ -1,6 +1,6 @@
 process CALL {
   input:
-  tuple val(meta), path(tumour_bam), path(normal_bam), path(gridss_assembled)
+  tuple val(meta), path(tumor_bam), path(normal_bam), path(gridss_assembled)
   path(ref_data_genome_dir)
   val(ref_data_genome_fn)
   path(blacklist)
@@ -24,7 +24,7 @@ process CALL {
     --jvmheap "${params.mem_gridss}" \
     --jar "${params.jar_gridss}" \
     --steps call \
-    --labels "${meta.normal_name},${meta.tumour_name}" \
+    --labels "${meta.normal_name},${meta.tumor_name}" \
     --reference "${ref_data_genome_dir}/${ref_data_genome_fn}" \
     --blacklist "${blacklist}" \
     --workingdir "${output_dir}/work/" \
@@ -32,7 +32,7 @@ process CALL {
     --output "${output_dir}/sv_vcf.vcf.gz" \
     --threads "${params.cpus}" \
     "${normal_bam}" \
-    "${tumour_bam}"
+    "${tumor_bam}"
   """
 
   stub:

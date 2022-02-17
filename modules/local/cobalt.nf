@@ -1,6 +1,6 @@
 process COBALT {
   input:
-  tuple val(meta), path(tumour_bam), path(normal_bam), path(tumour_bai), path(normal_bai)
+  tuple val(meta), path(tumor_bam), path(normal_bam), path(tumor_bai), path(normal_bai)
   path(gc_profile)
 
   output:
@@ -12,8 +12,8 @@ process COBALT {
     -Xmx${params.mem_cobalt} \
     -cp "${params.jar_cobalt}" \
     com.hartwig.hmftools.cobalt.CountBamLinesApplication \
-      -tumor "${meta.tumour_name}" \
-      -tumor_bam "${tumour_bam}" \
+      -tumor "${meta.tumor_name}" \
+      -tumor_bam "${tumor_bam}" \
       -reference "${meta.normal_name}" \
       -reference_bam "${normal_bam}" \
       -output_dir cobalt/ \

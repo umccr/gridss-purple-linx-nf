@@ -11,7 +11,7 @@ include { has_records_vcf } from '../lib/utility.groovy'
 workflow GRIDSS {
   take:
     // Format: [meta, bam, bai]
-    ch_bams_tumour_and_index
+    ch_bams_tumor_and_index
     // Format: [meta, bam]
     ch_bams_normal
     // Format: [meta, vcf]
@@ -23,7 +23,7 @@ workflow GRIDSS {
   main:
     // Create channels to sort inputs for fragment extraction
     // Format: [meta, bam]
-    ch_bams_tumour_preextract = ch_bams_tumour_and_index.map { it[0..1] }
+    ch_bams_tumor_preextract = ch_bams_tumor_and_index.map { it[0..1] }
     // Format: [meta]
     ch_sample_has_sv_vcfs = ch_sv_vcfs
       .branch { meta, vcf_fp ->
@@ -32,10 +32,10 @@ workflow GRIDSS {
         no: vcf_fp.name == 'NOFILE'
           return meta
       }
-    // Select samples with a tumour SV VCF and run GRIDSS fragment extraction
+    // Select samples with a tumor SV VCF and run GRIDSS fragment extraction
     // Format: [meta, bam, bai, vcf]
     ch_gridss_extract_fragments_input_all = group_by_meta([
-      ch_bams_tumour_and_index,
+      ch_bams_tumor_and_index,
       ch_sv_vcfs,
     ])
     // Format: [meta, bam, bai, vcf]
@@ -44,20 +44,20 @@ workflow GRIDSS {
     EXTRACT_FRAGMENTS(
         ch_gridss_extract_fragments_input,
     )
-    // Join extracted fragment BAMs with input BAMs (that had no tumour SV VCF)
+    // Join extracted fragment BAMs with input BAMs (that had no tumor SV VCF)
     // Format: [meta, bam]
-    ch_bams_tumour_no_sv_vcfs = ch_bams_tumour_preextract
+    ch_bams_tumor_no_sv_vcfs = ch_bams_tumor_preextract
         .join(ch_sample_has_sv_vcfs.no)
     // Format: [meta, bam]
-    ch_bams_tumour = Channel.empty()
+    ch_bams_tumor = Channel.empty()
       .concat(
-        ch_bams_tumour_no_sv_vcfs,
+        ch_bams_tumor_no_sv_vcfs,
         EXTRACT_FRAGMENTS.out,
       )
 
-    // Format: [meta, tumour_bam, normal_bam]
+    // Format: [meta, tumor_bam, normal_bam]
     ch_gridss_preprocess_input = group_by_meta([
-      ch_bams_tumour,
+      ch_bams_tumor,
       ch_bams_normal,
     ])
     PREPROCESS(
@@ -66,9 +66,9 @@ workflow GRIDSS {
       ref_data_genome_fn,
     )
 
-    // Format: [meta, tumour_bam, normal_bam, preprocess]
+    // Format: [meta, tumor_bam, normal_bam, preprocess]
     ch_gridss_assemble_input = group_by_meta([
-      ch_bams_tumour,
+      ch_bams_tumor,
       ch_bams_normal,
       PREPROCESS.out,
     ])
@@ -79,9 +79,9 @@ workflow GRIDSS {
       ref_data_gridss_blacklist,
     )
 
-    // Format: [meta, tumour_bam, normal_bam, assemble]
+    // Format: [meta, tumor_bam, normal_bam, assemble]
     ch_gridss_call_input = group_by_meta([
-      ch_bams_tumour,
+      ch_bams_tumor,
       ch_bams_normal,
       ASSEMBLE.out,
     ])
