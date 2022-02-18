@@ -5,6 +5,7 @@ include { AMBER } from '../modules/local/amber'
 include { COBALT } from '../modules/local/cobalt'
 include { GRIPSS } from '../modules/local/gripss'
 include { PURPLE } from '../modules/local/purple'
+include { REPORT } from '../modules/local/report'
 
 include { group_by_meta } from '../lib/utility.groovy'
 include { group_by_meta_interleave } from '../lib/utility.groovy'
@@ -144,5 +145,11 @@ workflow GPL {
     ref_data_linx_ensembl_data_dir,
     ref_data_known_fusion_data,
     ref_data_driver_gene_panel,
+  )
+
+  // Generate a Rmd report for Linx output
+  REPORT(
+    // Format: [meta, linx_annotation, linx_visualiser]
+    LINX.out,
   )
 }

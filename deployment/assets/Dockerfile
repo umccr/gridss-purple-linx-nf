@@ -2,13 +2,22 @@ FROM scwatts/gpl:0.1.4
 
 RUN \
   apt-get update && \
-  apt-get install -y git python3-pip graphviz xutils-dev  && \
+  apt-get install -y git python3-pip graphviz pandoc xutils-dev  && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
 RUN \
   pip3 install boto3 && \
   rm -r /root/.cache/pip
+
+# NOTE(SW): only the Conda package copies gpgr.R into a PATH directory
+RUN \
+  R -e " \
+    install.packages('remotes'); \
+    remotes::install_github('umccr/gpgr', ref='v1.2.1', dependencies=TRUE)\
+  " && \
+  wget -P /usr/local/bin/ https://raw.githubusercontent.com/umccr/gpgr/v1.2.1/inst/cli/gpgr.R && \
+  chmod 755 /usr/local/bin/gpgr.R
 
 RUN \
   mkdir -p /opt/nextflow && \
