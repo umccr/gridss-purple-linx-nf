@@ -55,7 +55,7 @@ def main(event, context):
     tumor_smlv_vcf_fp_arg = get_argument_string('tumor_smlv_vcf_fp', 'tumor_smlv_vcf', event)
     tumor_sv_vcf_fp_arg = get_argument_string('tumor_sv_vcf_fp', 'tumor_sv_vcf', event)
     nf_args_str_arg = get_argument_string('nextflow_args_str', 'nextflow_args_str', event)
-    command = f'''
+    command_gpl_indent = f'''
         /opt/gpl_pipeline/run_gpl.py
             --tumor_name {event["tumor_name"]}
             --normal_name {event["normal_name"]}
@@ -68,7 +68,9 @@ def main(event, context):
             --cpu_count {event["instance_vcpus"]}
             {nf_args_str_arg}
     '''
-    command = re.sub(r'[ \n]+', ' ', command).strip()
+    command_gpl = re.sub(r'[ \n]+', ' ', command_gpl_indent).strip()
+    command_conda = '. /opt/conda/etc/profile.d/conda.sh && conda activate base'
+    command = command_conda + ' && ' + command_gpl
     command_full = ['bash', '-o', 'pipefail', '-c', command]
 
     # If provided a Docker image that does not have a corresponding job definition, create it and
