@@ -56,7 +56,7 @@ def main(event, context):
     tumor_sv_vcf_fp_arg = get_argument_string('tumor_sv_vcf_fp', 'tumor_sv_vcf', event)
     nf_args_str_arg = get_argument_string('nextflow_args_str', 'nextflow_args_str', event)
     command = f'''
-        /opt/gpl/run_gpl.py
+        /opt/gpl_pipeline/run_gpl.py
             --tumor_name {event["tumor_name"]}
             --normal_name {event["normal_name"]}
             --tumor_bam_fp {event["tumor_bam"]}

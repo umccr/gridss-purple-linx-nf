@@ -40,29 +40,13 @@ pip install -r requirements.txt
 ### Build Docker image
 Configure
 ```bash
-NAME=gpl-nf
 VERSION=0.1.4
-URI_LOCAL="${NAME}:${VERSION}"
 AWS_PROVIDER_URL=843407916570.dkr.ecr.ap-southeast-2.amazonaws.com
-AWS_URI_REMOTE="${AWS_PROVIDER_URL}/${NAME}:${VERSION}"
-```
-
-Build
-```bash
-docker build -t "${NAME}" -f assets/Dockerfile .
-```
-
-Upload
-```bash
-# Tag image with remote AWS ECR URI
-docker tag "${NAME}" "${AWS_URI_REMOTE}"
-
-# Configure Docker with AWS credentials and upload
+# Build
+docker build -t ${AWS_PROVIDER_URL}/gpl-nf:${VERSION} -f docker/Dockerfile .
+# Upload
 aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin "${AWS_PROVIDER_URL}"
-docker push "${AWS_URI_REMOTE}"
-
-# Remove unencrypted credentials
-rm /Users/stephen/.docker/config.json
+docker push ${AWS_PROVIDER_URL}/gpl-nf:${VERSION}
 ```
 
 ### Build Lambda layers

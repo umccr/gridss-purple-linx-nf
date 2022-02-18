@@ -1,0 +1,58 @@
+FROM scwatts/gridss_deps:0.1.4 as base
+
+# Install parallel to download some files
+RUN \
+  mamba install -y parallel && \
+  mamba clean --all --force-pkgs-dirs --yes
+
+# Download GRIDSS release
+ARG GRIDSS_VERSION=2.13.2
+ARG BASE_URL=https://github.com/PapenfussLab/gridss/releases/download
+RUN \
+  mkdir -p /opt/gridss/ && \
+  export BASE_URL_TAG=${BASE_URL}/v${GRIDSS_VERSION} && \
+  parallel -j0 'wget -q -O /opt/gridss/$(echo {/} | sed "s/[-].\+/.jar/") "${BASE_URL_TAG}/{}"' ::: \
+    gridss-${GRIDSS_VERSION}-gridss-jar-with-dependencies.jar \
+    gridss_annotate_vcf_repeatmasker \
+    gridss \
+    gridss.config.R \
+    gridss_extract_overlapping_fragments \
+    libgridss.R && \
+  find /opt/gridss/ -type f ! -name '*.R' -exec chmod a+x {} +
+
+# NOTE(SW): fix required for gridss_extract_overlapping_fragments samtools version
+RUN \
+  sed -i \
+    -e '209s/grep samtools/head -n1 | grep samtools/' \
+    /opt/gridss/gridss_extract_overlapping_fragments
+
+
+# Compile gridsstools from source, pre-compiled is not compatible with libraries available through Conda
+FROM base as gridsstools_build
+
+# Install build dependencies
+RUN \
+  mamba install -y \
+    -c bioconda \
+    -c conda-forge \
+    -c defaults \
+    autoconf \
+    automake \
+    binutils
+
+# Pull source and compile, must activate Conda env to place build executables/libraries/includes into path
+ARG GH_BASE_URL=https://github.com/PapenfussLab/gridss/archive/refs/tags
+RUN \
+  git clone --recurse-submodules --branch v${GRIDSS_VERSION} https://github.com/PapenfussLab/gridss && \
+  . /opt/conda/etc/profile.d/conda.sh && conda activate base && \
+  cd /gridss/src/main/c/gridsstools/htslib/ && \
+  autoreconf -i && ./configure && make && \
+  cd /gridss/src/main/c/gridsstools/ && \
+  autoreconf -i && ./configure && make
+
+
+# Set 'base' as final image and copy gridsstools build artefact from the gridsstools_build image
+FROM base
+COPY --from=gridsstools_build /gridss/src/main/c/gridsstools/gridsstools /opt/gridss/
+
+ENV PATH="/opt/gridss:${PATH}"

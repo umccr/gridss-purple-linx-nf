@@ -183,7 +183,7 @@ def main():
             -ansi-log false
             -config {config_fp}
             -work-dir {WORK_DIR}
-            /opt/gpl/pipeline/main.nf
+            /opt/gpl_pipeline/pipeline/main.nf
             {args.nextflow_args_str}
     '''
     command = re.sub(r'[ \n]+', ' ', command_long).strip()
@@ -428,11 +428,11 @@ def get_config_params(config_settings):
         'mem_purple = \'14G\'',
         'jar_amber = \'/opt/hmftools/amber.jar\'',
         'jar_cobalt = \'/opt/hmftools/cobalt.jar\'',
-        'jar_gridss = \'/opt/gridss/gridss-2.13.2-gridss-jar-with-dependencies.jar\'',
+        'jar_gridss = \'/opt/gridss/gridss.jar\'',
         'jar_gripss = \'/opt/hmftools/gripss.jar\'',
         'jar_purple = \'/opt/hmftools/purple.jar\'',
         'jar_linx = \'/opt/hmftools/linx.jar\'',
-        'path_circos = \'/opt/circos/bin/circos\'',
+        'path_circos = \'circos\'',
     ]
 
     config_params_lines = [

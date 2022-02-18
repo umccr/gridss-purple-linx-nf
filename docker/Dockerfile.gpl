@@ -1,0 +1,26 @@
+FROM scwatts/gridss:0.1.4
+
+ARG GH_BASE_URL=https://github.com/hartwigmedical/hmftools/releases/download
+RUN \
+  mkdir -p /opt/hmftools/ && \
+  parallel -j5 'wget -q -O /opt/hmftools/$(echo {/} | sed "s/[-_].\+/.jar/") "${GH_BASE_URL}/{}"' ::: \
+    amber-v3.7/amber.jar \
+    cobalt-v1.11/cobalt-1.11.jar \
+    gripss-v2.0/gripss.jar \
+    purple-v3.2/purple_v3.2.jar \
+    linx-v1.17/linx.jar
+
+RUN \
+  mamba install -y \
+    -c bioconda \
+    -c conda-forge \
+    -c defaults \
+    bioconductor-gviz \
+    bioconductor-copynumber \
+    circos \
+    r-cowplot \
+    r-dplyr \
+    r-ggplot2 \
+    r-magick \
+    r-tidyr && \
+  mamba clean --all --force-pkgs-dirs --yes
