@@ -69,8 +69,8 @@ ref_data_gridss_breakpoint_pon = file(params.ref_data_gridss_breakpoint_pon)
 // Linx
 ref_data_linx_fragile_sites = file(params.ref_data_linx_fragile_sites)
 ref_data_linx_line_elements = file(params.ref_data_linx_line_elements)
-ref_data_linx_ensembl_data_dir = file(params.ref_data_linx_ensembl_data_dir)
 // Misc
+ref_data_ensembl_data_dir = file(params.ref_data_ensembl_data_dir)
 ref_data_known_hotspots = file(params.ref_data_known_hotspots)
 ref_data_known_fusions = file(params.ref_data_known_fusions)
 ref_data_known_fusion_data = file(params.ref_data_known_fusion_data)
@@ -142,7 +142,7 @@ workflow GPL {
     ch_linx_input,
     ref_data_linx_fragile_sites,
     ref_data_linx_line_elements,
-    ref_data_linx_ensembl_data_dir,
+    ref_data_ensembl_data_dir,
     ref_data_known_fusion_data,
     ref_data_driver_gene_panel,
   )
