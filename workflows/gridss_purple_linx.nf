@@ -5,6 +5,7 @@ include { AMBER } from '../modules/local/amber'
 include { COBALT } from '../modules/local/cobalt'
 include { GRIPSS } from '../modules/local/gripss'
 include { PURPLE } from '../modules/local/purple'
+include { REPORT } from '../modules/local/report'
 
 include { group_by_meta } from '../lib/utility.groovy'
 include { group_by_meta_interleave } from '../lib/utility.groovy'
@@ -68,8 +69,8 @@ ref_data_gridss_breakpoint_pon = file(params.ref_data_gridss_breakpoint_pon)
 // Linx
 ref_data_linx_fragile_sites = file(params.ref_data_linx_fragile_sites)
 ref_data_linx_line_elements = file(params.ref_data_linx_line_elements)
-ref_data_linx_ensembl_data_dir = file(params.ref_data_linx_ensembl_data_dir)
 // Misc
+ref_data_ensembl_data_dir = file(params.ref_data_ensembl_data_dir)
 ref_data_known_hotspots = file(params.ref_data_known_hotspots)
 ref_data_known_fusions = file(params.ref_data_known_fusions)
 ref_data_known_fusion_data = file(params.ref_data_known_fusion_data)
@@ -141,8 +142,14 @@ workflow GPL {
     ch_linx_input,
     ref_data_linx_fragile_sites,
     ref_data_linx_line_elements,
-    ref_data_linx_ensembl_data_dir,
+    ref_data_ensembl_data_dir,
     ref_data_known_fusion_data,
     ref_data_driver_gene_panel,
+  )
+
+  // Generate a Rmd report for Linx output
+  REPORT(
+    // Format: [meta, linx_annotation, linx_visualiser]
+    LINX.out,
   )
 }

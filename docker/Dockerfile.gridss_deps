@@ -1,0 +1,19 @@
+FROM condaforge/mambaforge:4.11.0-2
+
+# Install required GRIDSS dependencies, separated from GRIDSS install as RepeatMasker pulls ~2GiB of data files
+RUN \
+  mamba install -y \
+    -c bioconda \
+    -c conda-forge \
+    -c defaults \
+    bioconductor-structuralvariantannotation \
+    bwa \
+    hmmer \
+    openjdk \
+    repeatmasker \
+    'R >=4' \
+    'samtools >=1.13' && \
+  mamba clean --all --force-pkgs-dirs --yes
+
+ENV LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/:/opt/conda/lib:${LD_LIBRARY_PATH}"
+ENV JAVA_HOME="/opt/conda/"

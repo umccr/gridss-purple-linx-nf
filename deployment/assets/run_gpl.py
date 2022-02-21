@@ -183,7 +183,7 @@ def main():
             -ansi-log false
             -config {config_fp}
             -work-dir {WORK_DIR}
-            /opt/gpl/pipeline/main.nf
+            /opt/gpl_pipeline/pipeline/main.nf
             {args.nextflow_args_str}
     '''
     command = re.sub(r'[ \n]+', ' ', command_long).strip()
@@ -411,7 +411,7 @@ def get_config_params(config_settings):
         f'ref_data_gridss_breakpoint_pon = \'{REFERENCE_LOCAL_DIR / "GRIDSS/38/gridss_pon_breakpoint.38.bedpe"}\'',
         f'ref_data_linx_fragile_sites = \'{REFERENCE_LOCAL_DIR / "Linx/38/fragile_sites_hmf.38.csv"}\'',
         f'ref_data_linx_line_elements = \'{REFERENCE_LOCAL_DIR / "Linx/38/line_elements.38.csv"}\'',
-        f'ref_data_linx_ensembl_data_dir = \'{REFERENCE_LOCAL_DIR / "Ensembl-Data-Cache/38"}\'',
+        f'ref_data_ensembl_data_dir = \'{REFERENCE_LOCAL_DIR / "Ensembl-Data-Cache/38"}\'',
         f'ref_data_known_hotspots = \'{REFERENCE_LOCAL_DIR / "Sage/38/KnownHotspots.somatic.38.vcf.gz"}\'',
         f'ref_data_known_fusions = \'{REFERENCE_LOCAL_DIR / "Known-Fusions/38/known_fusions.38.bedpe"}\'',
         f'ref_data_known_fusion_data = \'{REFERENCE_LOCAL_DIR / "Known-Fusions/38/known_fusion_data.38.csv"}\'',
@@ -428,11 +428,11 @@ def get_config_params(config_settings):
         'mem_purple = \'14G\'',
         'jar_amber = \'/opt/hmftools/amber.jar\'',
         'jar_cobalt = \'/opt/hmftools/cobalt.jar\'',
-        'jar_gridss = \'/opt/gridss/gridss-2.13.2-gridss-jar-with-dependencies.jar\'',
+        'jar_gridss = \'/opt/gridss/gridss.jar\'',
         'jar_gripss = \'/opt/hmftools/gripss.jar\'',
         'jar_purple = \'/opt/hmftools/purple.jar\'',
         'jar_linx = \'/opt/hmftools/linx.jar\'',
-        'path_circos = \'/opt/circos/bin/circos\'',
+        'path_circos = \'circos\'',
     ]
 
     config_params_lines = [

@@ -90,7 +90,7 @@ Assumes the pipeline will be executed using the provided Docker image
 * [GRIDSS](https://github.com/PapenfussLab/gridss) (v2.13.2)
 * [GRIPSS](https://github.com/hartwigmedical/hmftools/blob/master/gripss/) (v2.0)
 * [PURPLE](https://github.com/hartwigmedical/hmftools/blob/master/purple/) (v3.2)
-* [Linx](https://github.com/hartwigmedical/hmftools/blob/master/linx/) (v1.17)
+* [Linx](https://github.com/hartwigmedical/hmftools/blob/master/linx/) (v1.18)
 
 ## Reference data
 The GPL toolkit requires a number of reference files. These can be obtained from the HMF Nextcloud instance

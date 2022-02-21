@@ -6,7 +6,7 @@ process ANNOTATE {
 
   output:
   tuple val(meta), path('gridss_annotate/sv_vcf.annotated.vcf.gz'), emit: vcf
-  path('gridss_annotate/*')
+  path('gridss_annotate/sv_vcf.annotated*')
 
   script:
   """

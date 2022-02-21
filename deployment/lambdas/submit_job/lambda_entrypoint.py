@@ -3,6 +3,7 @@ import argparse
 import json
 import logging
 import os
+import re
 
 
 import requests
@@ -97,9 +98,23 @@ def validate_event_data(event):
 
 def get_file_path(pattern, subject_id):
     LOGGER.info(f'getting file path for {subject_id} with pattern {pattern}')
-    md_entries = make_api_get_call(f's3?subject={subject_id}&search={pattern}')
-    if len(md_entries) != 1:
+    md_entries_all = make_api_get_call(f's3?subject={subject_id}&search={pattern}')
+    if len(md_entries_all) == 0:
+        return str()
+    # The data portal /s3 endpoint doesn't use standard regex to match, and in some cases the
+    # germline smlv VCF was selected. Forcing all files to match regex to prevent unwanted file
+    # selection.
+    md_entries = list()
+    for md_entry in md_entries_all:
+        if not (re_result := re.search(pattern, md_entry['key'])):
+            continue
+        md_entries.append(md_entry)
+    if len(md_entries) > 1:
         msg = f'found more than one entry for {pattern}'
+        LOGGER.critical(msg)
+        raise ValueError(msg)
+    elif len(md_entries) == 0:
+        msg = f'no entries found for {pattern}'
         LOGGER.critical(msg)
         raise ValueError(msg)
     entry = md_entries[0]
@@ -198,7 +213,7 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id):
         'normal_name': f'{subject_id}_{normal_sample_md["sample_id"]}_{normal_sample_md["library_id"]}',
         'tumor_bam': get_file_path(bam_tumor_pattern, subject_id),
         'normal_bam': get_file_path(bam_normal_pattern, subject_id),
-        'tumor_smlv_vcf': get_file_path(f'{subject_id}-ensemble-annotated.vcf.gz$', subject_id),
+        'tumor_smlv_vcf': get_smlv_vcf_file_path(f'{subject_id}-[^-]+-annotated.vcf.gz$', subject_id),
         'tumor_sv_vcf': get_file_path(f'{subject_id}-manta.vcf.gz$', subject_id),
         'output_dir': f'{output_base_dir}/{identifier}_shortcut/',
     }
@@ -206,3 +221,12 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id):
 
 def get_bam_pattern(md):
     return f'{md["subject_id"]}_{md["sample_id"]}_{md["library_id"]}-ready.bam$'
+
+
+def get_smlv_vcf_file_path(pattern, subject_id):
+    filepath = get_file_path(f'{subject_id}-[^-]+-annotated.vcf.gz$', subject_id)
+    if '-germline-' in filepath:
+        msg = f'expected a somatic VCF but got germline with {pattern}'
+        LOGGER.critical(msg)
+        raise ValueError(msg)
+    return filepath
