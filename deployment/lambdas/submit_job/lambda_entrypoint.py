@@ -212,7 +212,7 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id):
         'normal_name': f'{subject_id}_{normal_sample_md["sample_id"]}_{normal_sample_md["library_id"]}',
         'tumor_bam': get_file_path(bam_tumor_pattern, subject_id),
         'normal_bam': get_file_path(bam_normal_pattern, subject_id),
-        'tumor_smlv_vcf': get_file_path(f'{subject_id}-[^-]+-annotated.vcf.gz$', subject_id),
+        'tumor_smlv_vcf': get_smlv_vcf_file_path(f'{subject_id}-[^-]+-annotated.vcf.gz$', subject_id),
         'tumor_sv_vcf': get_file_path(f'{subject_id}-manta.vcf.gz$', subject_id),
         'output_dir': f'{output_base_dir}/{identifier}_shortcut/',
     }
@@ -220,3 +220,12 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id):
 
 def get_bam_pattern(md):
     return f'{md["subject_id"]}_{md["sample_id"]}_{md["library_id"]}-ready.bam$'
+
+
+def get_smlv_vcf_file_path(pattern, subject_id):
+    filepath = get_file_path(f'{subject_id}-[^-]+-annotated.vcf.gz$', subject_id)
+    if '-germline-' in filepath:
+        msg = f'expected a somatic VCF but got germline with {pattern}'
+        LOGGER.critical(msg)
+        raise ValueError(msg)
+    return filepath
