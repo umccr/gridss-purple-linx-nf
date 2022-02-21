@@ -101,22 +101,19 @@ def get_file_path(pattern, subject_id):
     md_entries_all = make_api_get_call(f's3?subject={subject_id}&search={pattern}')
     if len(md_entries_all) == 0:
         return str()
-    # The data portal /s3 endpoint doesn't use standard regex to match. Apply regex here if we get
-    # multiple results.
+    # The data portal /s3 endpoint doesn't use standard regex to match. Force all files to match
+    # regex. Prevents unwanted file select such as germline smlv VCFs.
     md_entries = list()
-    if len(md_entries_all) == 1:
-        md_entries = md_entries_all
-    else:
-        for md_entry in md_entries_all:
-            if not (re_result := re.search(pattern, md_entry['key'])):
-                continue
-            md_entries.append(md_entry)
+    for md_entry in md_entries_all:
+        if not (re_result := re.search(pattern, md_entry['key'])):
+            continue
+        md_entries.append(md_entry)
     if len(md_entries) > 1:
         msg = f'found more than one entry for {pattern}'
         LOGGER.critical(msg)
         raise ValueError(msg)
     elif len(md_entries) == 0:
-        msg = f'something went wrong - found entries that don\'t match regex {pattern}'
+        msg = f'no entries found for {pattern}'
         LOGGER.critical(msg)
         raise ValueError(msg)
     entry = md_entries[0]
