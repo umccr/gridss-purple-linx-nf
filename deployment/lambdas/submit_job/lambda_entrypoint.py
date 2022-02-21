@@ -96,9 +96,9 @@ def validate_event_data(event):
         raise ValueError(msg)
 
 
-def get_file_path(pattern, subject_id, ignore_missing=False):
+def get_file_path(pattern, subject_id):
     LOGGER.info(f'getting file path for {subject_id} with pattern {pattern}')
-    md_entries_all = make_api_get_call(f's3?subject={subject_id}&search={pattern}', ignore_missing)
+    md_entries_all = make_api_get_call(f's3?subject={subject_id}&search={pattern}')
     if len(md_entries_all) == 0:
         return str()
     # The data portal /s3 endpoint doesn't use standard regex to match. Apply regex here if we get
@@ -140,7 +140,7 @@ def get_subject_metadata(subject_id):
     return make_api_get_call(f'metadata?subject_id={subject_id}')
 
 
-def make_api_get_call(endpoint, ignore_missing=False):
+def make_api_get_call(endpoint):
     url = f'{PORTAL_API_BASE_URL}/{endpoint}'
     LOGGER.debug(f'GET request to {url}')
     req_md_raw = requests.get(url, headers={'Authorization': f'Bearer {PORTAL_SERVICE_TOKEN}'})
@@ -149,12 +149,8 @@ def make_api_get_call(endpoint, ignore_missing=False):
     # Check we have results
     if not (md_entries := req_md.get('results')):
         msg = f'no results found for query {url}'
-        if ignore_missing:
-            LOGGER.warning(msg)
-            return list()
-        else:
-            LOGGER.critical(msg)
-            raise ValueError(msg)
+        LOGGER.critical(msg)
+        raise ValueError(msg)
     # Ensure we have pagination data but fail if we have multiple pages
     # NOTE(SW): will need an example case to implement logic to handle
     if not (pg_data := req_md.get('pagination')):
@@ -219,7 +215,7 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id):
         'normal_name': f'{subject_id}_{normal_sample_md["sample_id"]}_{normal_sample_md["library_id"]}',
         'tumor_bam': get_file_path(bam_tumor_pattern, subject_id),
         'normal_bam': get_file_path(bam_normal_pattern, subject_id),
-        'tumor_smlv_vcf': get_tumor_smlv_vcf(tumor_name, subject_id),
+        'tumor_smlv_vcf': get_file_path(f'{subject_id}-[^-]+-annotated.vcf.gz$', subject_id),
         'tumor_sv_vcf': get_file_path(f'{subject_id}-manta.vcf.gz$', subject_id),
         'output_dir': f'{output_base_dir}/{identifier}_shortcut/',
     }
@@ -227,14 +223,3 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id):
 
 def get_bam_pattern(md):
     return f'{md["subject_id"]}_{md["sample_id"]}_{md["library_id"]}-ready.bam$'
-
-
-def get_tumor_smlv_vcf(tumor_name, subject_id):
-    if filepath := get_file_path(f'{subject_id}-[^-]+-annotated.vcf.gz$', subject_id):
-        return filepath
-    elif filepath := get_file_path(f'{tumor_name}/{tumor_name}-.+.vcf.gz$', subject_id):
-        return filepath
-    else:
-        msg = f'could not find tumor small variant VCF for {subject_id}'
-        LOGGER.critical(msg)
-        raise ValueError(msg)
