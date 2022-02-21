@@ -1,4 +1,4 @@
-FROM scwatts/gridss:0.1.4
+FROM scwatts/gridss:0.1.5
 
 ARG GH_BASE_URL=https://github.com/hartwigmedical/hmftools/releases/download
 RUN \
