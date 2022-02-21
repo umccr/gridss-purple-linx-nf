@@ -111,7 +111,7 @@ def get_file_path(pattern, subject_id):
             if not (re_result := re.search(pattern, md_entry['key'])):
                 continue
             md_entries.append(md_entry)
-    if len(md_entries) != 1:
+    if len(md_entries) > 1:
         msg = f'found more than one entry for {pattern}'
         LOGGER.critical(msg)
         raise ValueError(msg)
