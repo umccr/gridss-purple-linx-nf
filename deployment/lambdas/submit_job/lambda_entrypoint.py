@@ -101,8 +101,9 @@ def get_file_path(pattern, subject_id):
     md_entries_all = make_api_get_call(f's3?subject={subject_id}&search={pattern}')
     if len(md_entries_all) == 0:
         return str()
-    # The data portal /s3 endpoint doesn't use standard regex to match. Force all files to match
-    # regex. Prevents unwanted file select such as germline smlv VCFs.
+    # The data portal /s3 endpoint doesn't use standard regex to match, and in some cases the
+    # germline smlv VCF was selected. Forcing all files to match regex to prevent unwanted file
+    # selection.
     md_entries = list()
     for md_entry in md_entries_all:
         if not (re_result := re.search(pattern, md_entry['key'])):
