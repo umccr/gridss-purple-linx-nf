@@ -52,25 +52,23 @@ an example see: [`nextflow.config`](nextflow.config)). To execute the pipeline:
 ### Directories
 | Name                  | Contents                              |
 | ---                   | ---                                   |
-| `nextflow/`           | Pipeline config, logs, and reports    |
-| `amber/`              | B-allele frequency                    |
-| `cobalt/`             | Tumor/normal read depth ratios        |
-| `gridss_preprocess/`  | Pre-processed reads                   |
-| `gridss_assemble/`    | SV assemblies                         |
-| `gridss_call/`        | SV calls                              |
-| `gridss_annotate/`    | SV annotation (RepeatMasker)          |
+` `gridss/`             | GRIDSS final output                   |
 | `gripss/`             | Filtered SVs                          |
-| `purple/`             | CNA calls, purity, ploidy             |
 | `linx_annotation/`    | Data for clustered and annotated SVs  |
 | `linx_visualiser/`    | Plots for clustered and annotated SVs |
+| `nextflow/`           | Pipeline config, logs, and reports    |
+| `nextflow/work/`      | Intermediary work files               |
+| `purple/`             | CNA calls, purity, ploidy             |
 
 ### Useful files
 | Name                                      | Description                               |
 | ---                                       | ---                                       |
+| `<tumor_name>_linx.html`                  | gpgr Linx Rmd report                      |
 | `linx_annotation/*tsv`                    | Grouped and annotated SV events           |
 | `linx_visualiser/plot/*png`               | SV event plots                            |
 | `purple/plot/*png`                        | Purity, ploidy, circos, etc plots         |
-| `purple/<tumor_name>.<vcf_type>.vcf.gz`  | VCF provided to and annotated by PURPLE    |
+| `purple/<tumor_name>.<vcf_type>.vcf.gz`   | VCF provided to and annotated by PURPLE   |
+| `gridss/sv_annotated.vcf.gz`              | Final GRIDSS output SV VCF                |
 | `gripps/<prefix>.gripps.filtered.vcf.gz`  | Hard filtered SV VCF                      |
 | `gripps/<prefix>.gripss.vcf.gz`           | Soft filtered SV VCF                      |
 | `nextflow/nextflow_log.txt`               | Pipeline log file                         |
