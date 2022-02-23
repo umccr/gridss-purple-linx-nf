@@ -7,7 +7,7 @@ RUN \
     amber-v3.7/amber.jar \
     cobalt-v1.11/cobalt-1.11.jar \
     gripss-v2.0/gripss.jar \
-    purple-v3.2/purple_v3.2.jar \
+    purple-v3.3/purple.jar \
     linx-v1.18/linx.jar
 
 RUN \

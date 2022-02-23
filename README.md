@@ -87,7 +87,7 @@ Assumes the pipeline will be executed using the provided Docker image
 * [COBALT](https://github.com/hartwigmedical/hmftools/blob/master/cobalt/) (v1.11)
 * [GRIDSS](https://github.com/PapenfussLab/gridss) (v2.13.2)
 * [GRIPSS](https://github.com/hartwigmedical/hmftools/blob/master/gripss/) (v2.0)
-* [PURPLE](https://github.com/hartwigmedical/hmftools/blob/master/purple/) (v3.2)
+* [PURPLE](https://github.com/hartwigmedical/hmftools/blob/master/purple/) (v3.3)
 * [Linx](https://github.com/hartwigmedical/hmftools/blob/master/linx/) (v1.18)
 
 ## Reference data
