@@ -52,7 +52,7 @@ an example see: [`nextflow.config`](nextflow.config)). To execute the pipeline:
 ### Directories
 | Name                  | Contents                              |
 | ---                   | ---                                   |
-` `gridss/`             | GRIDSS final output                   |
+| `gridss/`             | GRIDSS final output                   |
 | `gripss/`             | Filtered SVs                          |
 | `linx_annotation/`    | Data for clustered and annotated SVs  |
 | `linx_visualiser/`    | Plots for clustered and annotated SVs |
