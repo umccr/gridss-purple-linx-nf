@@ -4,9 +4,11 @@ import json
 import logging
 import os
 import re
+import urllib.parse
 
 
 import requests
+import aws_requests_auth.boto_utils
 
 
 import util
@@ -16,13 +18,6 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 
 CLIENT_LAMBDA = util.get_client('lambda')
-CLIENT_SSM = util.get_client('ssm')
-
-PORTAL_SERVICE_TOKEN = util.get_ssm_parameter(
-    '/data_portal/backend/service_token',
-    CLIENT_SSM,
-    decrypt=True
-)
 
 PORTAL_API_BASE_URL = util.get_environment_variable('PORTAL_API_BASE_URL')
 SUBMISSION_LAMBDA_ARN = util.get_environment_variable('SUBMISSION_LAMBDA_ARN')
@@ -39,16 +34,23 @@ def main(event, context):
     if response_error := validate_event_data(event):
         return response_error
 
+    # Obtain IAM auth for API Gateway, required to sign HTTP API requests
+    api_auth = aws_requests_auth.boto_utils.BotoAWSRequestsAuth(
+        aws_host=urllib.parse.urlparse(PORTAL_API_BASE_URL).hostname,
+        aws_region='ap-southeast-2',
+        aws_service='execute-api',
+    )
+
     # Get sample information
     if (subject_id := event.get('subject_id')):
-        subject_md_all = get_subject_metadata(subject_id)
+        subject_md_all = get_subject_metadata(subject_id, api_auth)
         tumor_sample_md, normal_sample_md = get_samples_from_subject_metadata(
             subject_md_all,
             subject_id
         )
     else:
-        tumor_sample_md = get_sample_metadata(event['tumor_sample_id'])
-        normal_sample_md = get_sample_metadata(event['normal_sample_id'])
+        tumor_sample_md = get_sample_metadata(event['tumor_sample_id'], api_auth)
+        normal_sample_md = get_sample_metadata(event['normal_sample_id'], api_auth)
         if tumor_sample_md['phenotype'] != 'tumor':
             msg = f'provided tumor sample ID has phenotype of {tumor_sample_md["phenotype"]}'
             LOGGER.critical(msg)
@@ -62,7 +64,7 @@ def main(event, context):
         subject_id = tumor_sample_md['subject_id']
 
     # Submission data
-    data = get_submission_data(tumor_sample_md, normal_sample_md, subject_id)
+    data = get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
     LOGGER.debug(f'compiled submission data: {data}')
 
     # Invoke Lambda
@@ -96,9 +98,9 @@ def validate_event_data(event):
         raise ValueError(msg)
 
 
-def get_file_path(pattern, subject_id):
+def get_file_path(pattern, subject_id, api_auth):
     LOGGER.info(f'getting file path for {subject_id} with pattern {pattern}')
-    md_entries_all = make_api_get_call(f's3?subject={subject_id}&search={pattern}')
+    md_entries_all = make_api_get_call(f's3?subject={subject_id}&search={pattern}', api_auth)
     if len(md_entries_all) == 0:
         return str()
     # The data portal /s3 endpoint doesn't use standard regex to match, and in some cases the
@@ -123,9 +125,9 @@ def get_file_path(pattern, subject_id):
     return filepath
 
 
-def get_sample_metadata(sample_id):
+def get_sample_metadata(sample_id, api_auth):
     LOGGER.info(f'getting sample metadata for {sample_id}')
-    md_entries = make_api_get_call(f'metadata?sample_id={sample_id}')
+    md_entries = make_api_get_call(f'metadata?sample_id={sample_id}', api_auth)
     if len(md_entries) != 1:
         msg = f'found more than one entry for {sample_id}'
         LOGGER.critical(msg)
@@ -133,15 +135,15 @@ def get_sample_metadata(sample_id):
     return md_entries[0]
 
 
-def get_subject_metadata(subject_id):
+def get_subject_metadata(subject_id, api_auth):
     LOGGER.info(f'getting subject metadata for {subject_id}')
-    return make_api_get_call(f'metadata?subject_id={subject_id}')
+    return make_api_get_call(f'metadata?subject_id={subject_id}', api_auth)
 
 
-def make_api_get_call(endpoint):
+def make_api_get_call(endpoint, auth):
     url = f'{PORTAL_API_BASE_URL}/{endpoint}'
     LOGGER.debug(f'GET request to {url}')
-    req_md_raw = requests.get(url, headers={'Authorization': f'Bearer {PORTAL_SERVICE_TOKEN}'})
+    req_md_raw = requests.get(url, auth=auth)
     req_md = req_md_raw.json()
     LOGGER.debug(f'recieved {req_md} from {url}')
     # Check we have results
@@ -200,10 +202,12 @@ def get_sample_from_phenotype(d, phenotype, subject_id):
     return samples[0]
 
 
-def get_submission_data(tumor_sample_md, normal_sample_md, subject_id):
+def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth):
     identifier = f'{tumor_sample_md["project_owner"]}-{tumor_sample_md["project_name"]}_{subject_id}'
     bam_tumor_pattern = get_bam_pattern(tumor_sample_md)
     bam_normal_pattern = get_bam_pattern(normal_sample_md)
+    tumor_smlv_vcf_pattern = f'{subject_id}-[^-]+-annotated.vcf.gz$'
+    tumor_sv_vcf_pattern = f'{subject_id}-manta.vcf.gz$'
     tumor_name = f'{subject_id}_{tumor_sample_md["sample_id"]}_{tumor_sample_md["library_id"]}'
     normal_name = f'{subject_id}_{normal_sample_md["sample_id"]}_{normal_sample_md["library_id"]}'
     output_base_dir = f's3://{OUTPUT_BUCKET}/{OUTPUT_PREFIX}/runs'
@@ -211,10 +215,10 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id):
         'job_name': f'gpl_shortcut_{identifier}',
         'tumor_name': f'{subject_id}_{tumor_sample_md["sample_id"]}_{tumor_sample_md["library_id"]}',
         'normal_name': f'{subject_id}_{normal_sample_md["sample_id"]}_{normal_sample_md["library_id"]}',
-        'tumor_bam': get_file_path(bam_tumor_pattern, subject_id),
-        'normal_bam': get_file_path(bam_normal_pattern, subject_id),
-        'tumor_smlv_vcf': get_smlv_vcf_file_path(f'{subject_id}-[^-]+-annotated.vcf.gz$', subject_id),
-        'tumor_sv_vcf': get_file_path(f'{subject_id}-manta.vcf.gz$', subject_id),
+        'tumor_bam': get_file_path(bam_tumor_pattern, subject_id, api_auth),
+        'normal_bam': get_file_path(bam_normal_pattern, subject_id, api_auth),
+        'tumor_smlv_vcf': get_smlv_vcf_file_path(smlv_vcf_pattern, subject_id, api_auth),
+        'tumor_sv_vcf': get_file_path(tumor_sv_vcf_pattern, subject_id, api_auth),
         'output_dir': f'{output_base_dir}/{identifier}_shortcut/',
     }
 
@@ -223,8 +227,8 @@ def get_bam_pattern(md):
     return f'{md["subject_id"]}_{md["sample_id"]}_{md["library_id"]}-ready.bam$'
 
 
-def get_smlv_vcf_file_path(pattern, subject_id):
-    filepath = get_file_path(f'{subject_id}-[^-]+-annotated.vcf.gz$', subject_id)
+def get_smlv_vcf_file_path(pattern, subject_id, api_auth):
+    filepath = get_file_path(f'{subject_id}-[^-]+-annotated.vcf.gz$', subject_id, api_auth)
     if '-germline-' in filepath:
         msg = f'expected a somatic VCF but got germline with {pattern}'
         LOGGER.critical(msg)

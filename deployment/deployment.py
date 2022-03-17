@@ -221,25 +221,28 @@ class GplStack(core.Stack):
         )
 
         # Lambda function: submit job (automated input collection)
+        submit_job_lambda_role_policy = iam.PolicyDocument(
+            statements=[
+                iam.PolicyStatement(
+                    actions=['lambda:InvokeFunction'],
+                    resources=[submit_job_manual_lambda.function_arn]
+                ),
+                iam.PolicyStatement(
+                    actions=['execute-api:Invoke'],
+                    resources=['*']
+                ),
+            ]
+        )
+
         submit_job_lambda_role = iam.Role(
             self,
             'SubmitJobLambdaRole',
             assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
+            inline_policies=[submit_job_lambda_role_policy],
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
                 iam.ManagedPolicy.from_aws_managed_policy_name('AmazonSSMReadOnlyAccess'),
             ]
-        )
-
-        submit_job_lambda_role.add_to_policy(
-            iam.PolicyStatement(
-                actions=[
-                    'lambda:InvokeFunction',
-                ],
-                resources=[
-                    submit_job_manual_lambda.function_arn,
-                ]
-            )
         )
 
         submit_job_lambda = lmbda.Function(
