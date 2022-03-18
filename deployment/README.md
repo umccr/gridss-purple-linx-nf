@@ -60,8 +60,9 @@ done
 ```
 
 ### Deploy stack
+Set appropriate environment with `-c environment <dev|prod>`
 ```bash
-cdk deploy
+cdk deploy -c environment=dev
 ```
 
 ## Usage
