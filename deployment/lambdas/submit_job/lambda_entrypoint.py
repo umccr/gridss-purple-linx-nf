@@ -21,7 +21,6 @@ CLIENT_LAMBDA = util.get_client('lambda')
 
 PORTAL_API_BASE_URL = util.get_environment_variable('PORTAL_API_BASE_URL')
 SUBMISSION_LAMBDA_ARN = util.get_environment_variable('SUBMISSION_LAMBDA_ARN')
-OUTPUT_PREFIX = util.get_environment_variable('OUTPUT_PREFIX')
 OUTPUT_BUCKET = util.get_environment_variable('OUTPUT_BUCKET')
 
 
@@ -98,30 +97,23 @@ def validate_event_data(event):
         raise ValueError(msg)
 
 
-def get_file_path(pattern, subject_id, api_auth):
-    LOGGER.info(f'getting file path for {subject_id} with pattern {pattern}')
-    md_entries_all = make_api_get_call(f's3?subject={subject_id}&search={pattern}', api_auth)
-    if len(md_entries_all) == 0:
-        return str()
-    # The data portal /s3 endpoint doesn't use standard regex to match, and in some cases the
-    # germline smlv VCF was selected. Forcing all files to match regex to prevent unwanted file
-    # selection.
-    md_entries = list()
-    for md_entry in md_entries_all:
-        if not (re_result := re.search(pattern, md_entry['key'])):
-            continue
-        md_entries.append(md_entry)
-    if len(md_entries) > 1:
+def get_file_path(pattern, file_list):
+    LOGGER.info(f'getting file path with pattern {pattern}')
+    regex = re.compile(pattern)
+    files_matched = list()
+    for filepath in file_list:
+        if regex.match(filepath):
+            files_matched.append(filepath)
+    if len(files_matched) > 1:
         msg = f'found more than one entry for {pattern}'
         LOGGER.critical(msg)
         raise ValueError(msg)
-    elif len(md_entries) == 0:
+    elif len(files_matched) == 0:
         msg = f'no entries found for {pattern}'
         LOGGER.critical(msg)
         raise ValueError(msg)
-    entry = md_entries[0]
-    filepath = f's3://{entry["bucket"]}/{entry["key"]}'
-    LOGGER.info(f'got file path {filepath} for {subject_id} with pattern {pattern}')
+    [filepath] = files_matched
+    LOGGER.info(f'got file path {filepath} with pattern {pattern}')
     return filepath
 
 
@@ -141,7 +133,7 @@ def get_subject_metadata(subject_id, api_auth):
 
 
 def make_api_get_call(endpoint, auth):
-    url = f'{PORTAL_API_BASE_URL}/{endpoint}'
+    url = f'{PORTAL_API_BASE_URL}/iam/{endpoint}'
     LOGGER.debug(f'GET request to {url}')
     req_md_raw = requests.get(url, auth=auth)
     req_md = req_md_raw.json()
@@ -203,34 +195,60 @@ def get_sample_from_phenotype(d, phenotype, subject_id):
 
 
 def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth):
+    # Set identifers
     identifier = f'{tumor_sample_md["project_owner"]}-{tumor_sample_md["project_name"]}_{subject_id}'
-    bam_tumor_pattern = get_bam_pattern(tumor_sample_md)
-    bam_normal_pattern = get_bam_pattern(normal_sample_md)
-    tumor_smlv_vcf_pattern = f'{subject_id}-[^-]+-annotated.vcf.gz$'
-    tumor_sv_vcf_pattern = f'{subject_id}-manta.vcf.gz$'
     tumor_name = f'{subject_id}_{tumor_sample_md["sample_id"]}_{tumor_sample_md["library_id"]}'
     normal_name = f'{subject_id}_{normal_sample_md["sample_id"]}_{normal_sample_md["library_id"]}'
-    output_base_dir = f's3://{OUTPUT_BUCKET}/{OUTPUT_PREFIX}/runs'
+    # Get input file paths
+    # NOTE(SW): the `/iam/s3` endpoint does not currently allow certain special characters (e.g.
+    # '$' and '+') in the pattern string. So we must retrieve a list of all BAMs and VCFs from the
+    # data portal for the subject and then manually collect the desired file with regex.
+    file_list = [
+        *get_subject_files(subject_id, '.bam', api_auth),
+        *get_subject_files(subject_id, '.vcf.gz', api_auth),
+    ]
+    tumor_bam = get_file_path(get_bam_pattern(tumor_sample_md), file_list)
+    normal_bam = get_file_path(get_bam_pattern(normal_sample_md), file_list)
+    tumor_smlv_vcf = get_file_path(fr'^.+{subject_id}-[^-]+-annotated.vcf.gz$', file_list)
+    tumor_sv_vcf = get_file_path(fr'^.+{subject_id}-manta.vcf.gz$', file_list)
+    # Set output directory using tumor BAM path
+    if not (re_result := re.match(r'^s3://[^/]+/(.+?)/final/.+$', tumor_bam)):
+        msg = (
+            f'found non-standard input directory for tumor BAM ({tumor_bam}), refusing to guess '
+            f' output directory please use manual submission'
+        )
+        LOGGER.critical(msg)
+        raise ValueError(msg)
+
+    output_prefix_base = re_result.group(1)
+    if not re.match('^.+/[0-9]{4}-[0-9]{2}-[0-9]{2}$', output_prefix_base):
+        msg = (
+            f'could not obtain an appropriate output directory base from the tumor BAM ({tumor_bam}),'
+            f' expected a \'date\' directory (YYYY-MM-DD) but got {output_prefix_base}'
+        )
+        LOGGER.critical(msg)
+        raise ValueError(msg)
+    output_dir = f's3://{OUTPUT_BUCKET}/{output_prefix_base}/gridss_purple_linx/'
+    # Create and return submission data dict
     return {
         'job_name': f'gpl_shortcut_{identifier}',
         'tumor_name': f'{subject_id}_{tumor_sample_md["sample_id"]}_{tumor_sample_md["library_id"]}',
         'normal_name': f'{subject_id}_{normal_sample_md["sample_id"]}_{normal_sample_md["library_id"]}',
-        'tumor_bam': get_file_path(bam_tumor_pattern, subject_id, api_auth),
-        'normal_bam': get_file_path(bam_normal_pattern, subject_id, api_auth),
-        'tumor_smlv_vcf': get_smlv_vcf_file_path(smlv_vcf_pattern, subject_id, api_auth),
-        'tumor_sv_vcf': get_file_path(tumor_sv_vcf_pattern, subject_id, api_auth),
-        'output_dir': f'{output_base_dir}/{identifier}_shortcut/',
+        'tumor_bam': tumor_bam,
+        'normal_bam': normal_bam,
+        'tumor_smlv_vcf': tumor_smlv_vcf,
+        'tumor_sv_vcf': tumor_sv_vcf,
+        'output_dir': output_dir,
     }
 
 
 def get_bam_pattern(md):
-    return f'{md["subject_id"]}_{md["sample_id"]}_{md["library_id"]}-ready.bam$'
+    return fr'^.+/{md["subject_id"]}_{md["sample_id"]}_{md["library_id"]}-ready.bam$'
 
 
-def get_smlv_vcf_file_path(pattern, subject_id, api_auth):
-    filepath = get_file_path(f'{subject_id}-[^-]+-annotated.vcf.gz$', subject_id, api_auth)
-    if '-germline-' in filepath:
-        msg = f'expected a somatic VCF but got germline with {pattern}'
-        LOGGER.critical(msg)
-        raise ValueError(msg)
-    return filepath
+def get_subject_files(subject_id, pattern, api_auth):
+    entries_all = make_api_get_call(f's3?subject={subject_id}&search={pattern}&rowsPerPage=1000', api_auth)
+    filepaths = list()
+    for entry in entries_all:
+        filepaths.append(f's3://{entry["bucket"]}/{entry["key"]}')
+    return filepaths
