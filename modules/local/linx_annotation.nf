@@ -1,5 +1,5 @@
 process ANNOTATION {
-  publishDir "${params.output_dir}", mode: "${params.publish_mode}"
+  publishDir "${params.output_dir}", mode: "${params.publish_mode}", saveAs: { dp -> 'linx/annotations/' }
 
   input:
   tuple val(meta), path(purple)

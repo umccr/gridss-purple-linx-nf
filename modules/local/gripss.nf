@@ -10,8 +10,8 @@ process GRIPSS {
   path(known_fusions)
 
   output:
-  tuple val(meta), path('*.gripss.filtered.vcf.gz'), path('*.gripss.filtered.vcf.gz.tbi'), emit:hard
-  tuple val(meta), path('*.gripss.vcf.gz'), path('*.gripss.vcf.gz.tbi'), emit:soft
+  tuple val(meta), path('*.gripss.filtered.vcf.gz'), path('*.gripss.filtered.vcf.gz.tbi'), emit: hard
+  tuple val(meta), path('*.gripss.vcf.gz'), path('*.gripss.vcf.gz.tbi'), emit: soft
 
   script:
   """

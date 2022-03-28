@@ -11,8 +11,8 @@ process REPORT {
   """
   gpgr.R linx \
     --sample ${meta.tumor_name} \
-    --plot ${linx_visualiser}/plot/ \
-    --table ${linx_annotation} \
+    --plot ${linx_visualiser}/ \
+    --table ${linx_annotation}/ \
     --out ${meta.tumor_name}_linx.html;
   """
 
