@@ -9,9 +9,6 @@ sending them to multiple instances. This avoids having to pull reference data fo
 This approach will continue to be the most suitable solution until Nextflow can utilise a shared filesystem between jobs
 without using enterprise plugins.
 
-When a run fails for any reason the wrapper Python script attempts to catch the terminating signal and upload all data
-(including working directory) to the specified S3 output directory before exiting.
-
 ## Table of contents
 * [Schematic](#schematic)
 * [Prerequisites](#prerequisites)
@@ -40,7 +37,7 @@ pip install -r requirements.txt
 ### Build Docker image
 Configure
 ```bash
-VERSION=0.1.5
+VERSION=0.1.6
 AWS_PROVIDER_URL=843407916570.dkr.ecr.ap-southeast-2.amazonaws.com
 # Build
 docker build -t ${AWS_PROVIDER_URL}/gpl-nf:${VERSION} -f docker/Dockerfile .
@@ -60,8 +57,9 @@ done
 ```
 
 ### Deploy stack
+Set appropriate environment with `-c environment <dev|prod>`
 ```bash
-cdk deploy
+cdk deploy -c environment=dev
 ```
 
 ## Usage
@@ -126,15 +124,16 @@ aws lambda invoke \
 #### Lambda arguments
 | Argument              | Description                                                                                                   |
 | ---                   | ---                                                                                                           |
-| `job_name`            | Name for Batch job. Must be ≤128 characters and match this regex `^\w[\w_-]*$`. [*optional*]                  |
+| `job_name`            | Name for Batch job. Must be ≤128 characters and match this regex `^\w[\w_-]*$`.                               |
 | `normal_name`         | Normal sample name. Must match **exactly** the normal name as it appears in provided the VCFs [*required*]    |
 | `tumor_name`          | Tumor sample name. Must match **exactly** the tumor name as it appears in provided the VCFs [*required*]      |
 | `tumor_bam`           | S3 path to normal BAM. Must be co-located with index. [*required*]                                            |
 | `normal_bam`          | S3 path to tumor BAM. Must be co-located with index. [*required*]                                             |
-| `tumor_smlv_vcf`      | S3 path to tumor small variant VCF. [*optional*]                                                              |
-| `tumor_sv_vcf`        | S3 path to tumor SV VCF. GRIDSS fragment extraction automatically run if provided. [*optional*]               |
+| `tumor_smlv_vcf`      | S3 path to tumor small variant VCF.                                                                           |
+| `tumor_sv_vcf`        | S3 path to tumor SV VCF. GRIDSS fragment extraction automatically run if provided.                            |
 | `output_dir`          | S3 path to output directory. [*required*]                                                                     |
-| `docker_image_tag`    | Specific Docker image to use e.g. "0.0.3". [*optional*]                                                       |
-| `nextflow_args_str`   | Arguments to pass to Nextflow, must be wrapped in quotes e.g. `"\"--mem_gridss 14G\""`. [*optional*]          |
+| `upload_nf_cache`     | Upload Nextflow work directory to output S3 path.                                                             |
+| `docker_image_tag`    | Specific Docker image to use e.g. "0.0.3".                                                                    |
+| `nextflow_args_str`   | Arguments to pass to Nextflow, must be wrapped in quotes e.g. `"\"--mem_gridss 14G\""`.                       |
 | `instance_memory`     | Instance memory to provision.                                                                                 |
 | `instance_vcpus`      | Instance vCPUs to provision. *Currently only accepting 8 vCPUs per job to avoid exceeding storage limits*.    |

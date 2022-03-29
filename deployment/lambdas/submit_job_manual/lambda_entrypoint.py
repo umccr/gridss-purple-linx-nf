@@ -55,6 +55,7 @@ def main(event, context):
     tumor_smlv_vcf_fp_arg = get_argument_string('tumor_smlv_vcf_fp', 'tumor_smlv_vcf', event)
     tumor_sv_vcf_fp_arg = get_argument_string('tumor_sv_vcf_fp', 'tumor_sv_vcf', event)
     nf_args_str_arg = get_argument_string('nextflow_args_str', 'nextflow_args_str', event)
+    upload_nf_cache_arg = '--upload_nf_cache' if 'upload_nf_cache' in event else ''
     command_indented = f'''
         /opt/gpl_pipeline/run_gpl.py
             --tumor_name {event["tumor_name"]}
@@ -65,6 +66,7 @@ def main(event, context):
             {tumor_sv_vcf_fp_arg}
             --reference_data {REFERENCE_DATA}
             --output_dir {event["output_dir"]}
+            {upload_nf_cache_arg}
             --cpu_count {event["instance_vcpus"]}
             {nf_args_str_arg}
     '''
@@ -108,13 +110,14 @@ def main(event, context):
 def validate_event_data(event):
     arguments = {
         'job_name':                 {'required': False},
-        'tumor_name':              {'required': True},
+        'tumor_name':               {'required': True},
         'normal_name':              {'required': True},
-        'tumor_bam':               {'required': True,  's3_input': True, 'filetype': 'bam'},
+        'tumor_bam':                {'required': True,  's3_input': True, 'filetype': 'bam'},
         'normal_bam':               {'required': True,  's3_input': True, 'filetype': 'bam'},
-        'tumor_smlv_vcf':          {'required': False, 's3_input': True, 'filetype': 'vcf'},
-        'tumor_sv_vcf':            {'required': False, 's3_input': True, 'filetype': 'vcf'},
+        'tumor_smlv_vcf':           {'required': False, 's3_input': True, 'filetype': 'vcf'},
+        'tumor_sv_vcf':             {'required': False, 's3_input': True, 'filetype': 'vcf'},
         'output_dir':               {'required': True},
+        'upload_nf_cache':          {'required': False},
         'docker_image_tag':         {'required': False},
         'nextflow_args_str':        {'required': False},
         'instance_memory':          {'required': False, 'type_int': True, 'default': 30},

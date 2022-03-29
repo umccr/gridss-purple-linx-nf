@@ -130,6 +130,7 @@ workflow GPL {
     ref_data_cobalt_gc_profile,
     ref_data_known_hotspots,
     ref_data_driver_gene_panel,
+    ref_data_ensembl_data_dir,
   )
 
   // Check that PURPLE created SV VCFs and that these contain at least one record

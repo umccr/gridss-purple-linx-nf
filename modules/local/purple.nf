@@ -13,6 +13,7 @@ process PURPLE {
   path(gc_profile)
   path(known_hotspots)
   path(driver_gene_panel)
+  path(ensembl_data_dir)
 
   output:
   tuple val(meta), path('purple/')
@@ -39,10 +40,12 @@ process PURPLE {
       -cobalt "${cobalt}" \
       -output_dir purple/ \
       -gc_profile "${gc_profile}" \
-      -driver_catalog \
+      -run_drivers \
       -driver_gene_panel "${driver_gene_panel}" \
+      -ensembl_data_dir "${ensembl_data_dir}" \
       -somatic_hotspots "${known_hotspots}" \
       -ref_genome "${ref_data_genome_dir}/${ref_data_genome_fn}" \
+      -ref_genome_version 38 \
       -threads "${params.cpus}" \
       -circos "${params.path_circos}"
   # PURPLE can fail silently, check that at least the PURPLE SV VCF is created

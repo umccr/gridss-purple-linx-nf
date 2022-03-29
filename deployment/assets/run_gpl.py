@@ -5,7 +5,6 @@ import io
 import logging
 import pathlib
 import re
-import signal
 import subprocess
 import sys
 import textwrap
@@ -24,9 +23,6 @@ SAMPLE_LOCAL_DIR = DATA_LOCAL_DIR / 'sample/'
 OUTPUT_LOCAL_DIR = ROOT_LOCAL_DIR / 'output/'
 NEXTFLOW_DIR = OUTPUT_LOCAL_DIR / 'nextflow/'
 WORK_DIR = NEXTFLOW_DIR / 'work/'
-# Remote output
-# NOTE(SW): defined as global from get_arguments(), see note therein
-OUTPUT_DIR = str()
 
 
 # Logging
@@ -61,21 +57,6 @@ def match_s3_path(s3_path):
     return s3_path_re.match(s3_path)
 
 
-# Repeated
-def check_s3_output_dir_writable():
-    s3_path_components = match_s3_path(OUTPUT_DIR)
-    bucket = s3_path_components['bucket_name']
-    key = s3_path_components['key']
-    try:
-        key_test = f'{key}/permissions_test'
-        CLIENT_S3.put_object(Body='perm_test', Bucket=bucket, Key=key_test)
-        CLIENT_S3.delete_object(Bucket=bucket, Key=key_test)
-    except botocore.exceptions.ClientError:
-        msg = f'could not write to provided output directory: {OUTPUT_DIR}'
-        LOGGER.critical(msg)
-        sys.exit(1)
-
-
 CLIENT_S3 = get_client('s3')
 
 
@@ -97,41 +78,24 @@ def get_arguments():
             help='Reference data directory S3 path')
     parser.add_argument('--output_dir', required=True,
             help='Output S3 path')
+    parser.add_argument('--upload_nf_cache', required=False, action='store_true',
+            help='Output S3 path')
     parser.add_argument('--cpu_count', type=int, required=True,
             help='Number of CPUs to use')
     parser.add_argument('--nextflow_args_str', required=False,
             help='Additional Nextflow arguments as a quoted string')
     args = parser.parse_args()
-    # NOTE(SW): set OUTPUT_DIR as a global here to simplify calling upload_file from handle_signal.
-    # Alternatively, the handle_signal would need to be defined in a scope where output_dir is
-    # defined.
-    global OUTPUT_DIR
-    OUTPUT_DIR = args.output_dir if args.output_dir.endswith('/') else f'{args.output_dir}/'
-    delattr(args, 'output_dir')
+    args.output_dir = args.output_dir if args.output_dir.endswith('/') else f'{args.output_dir}/'
     return args
 
 
 def main():
-    # Use user-defined function to handle signals; upload log and config files upon unexpected
-    # termination. After upload complete/attempted, default signal handler is invoked.
-    for s in signal.valid_signals():
-        if signal.getsignal(s) is not signal.Handlers.SIG_DFL:
-            continue
-        # SIGTERM is ignored as I assume that in situations where this is sent/received, there is
-        # no need to automatically upload ouputs to S3
-        if s in {signal.SIGKILL, signal.SIGSTOP, signal.SIGCHLD, signal.SIGTERM}:
-            continue
-        signal.signal(s, handle_signal)
-
     # Create logging streams and get command line arguments
     create_log_streams()
     args = get_arguments()
 
     # Log command
     LOGGER.info(f'invoked with command: \'{" ".join(sys.argv)}\'')
-
-    # Check that output directory is writable
-    check_s3_output_dir_writable()
 
     # Ensure we have matching sample names in VCFs; stream and decompress to retrieve VCF header,
     # then compare VCF sample column names to input sample names
@@ -204,10 +168,9 @@ def main():
     process.wait()
     if process.returncode != 0:
         LOGGER.critical(f'Non-zero return code for command: {command}')
-        upload_data_outputs(ignore_work_dir_symlinks=False)
         sys.exit(1)
     else:
-        upload_data_outputs()
+        upload_data_outputs(args.output_dir, args.upload_nf_cache)
 
 
 def create_log_streams():
@@ -370,7 +333,6 @@ def execute_command(command, ignore_errors=False):
             LOGGER.critical(f'Non-zero return code for command: {result.args}')
             LOGGER.critical(f'stdout: {result.stdout}')
             LOGGER.critical(f'stderr: {result.stderr}')
-            upload_data_outputs(ignore_work_dir_symlinks=False)
             sys.exit(1)
     return result
 
@@ -477,10 +439,8 @@ def get_config_misc():
     ''')
 
 
-def upload_data_outputs(ignore_work_dir_symlinks=True):
-    # Upload main outputs, using the --exclude flag with paths symlinking to an excluded directory
-    # prevents upload so we must process directories individually to avoid uploading the work dir
-    # here
+def upload_data_outputs(output_dir, upload_nf_cache):
+    # Upload main outputs
     LOGGER.info('uploading main outputs')
     for path in OUTPUT_LOCAL_DIR.iterdir():
         if path == NEXTFLOW_DIR:
@@ -490,37 +450,27 @@ def upload_data_outputs(ignore_work_dir_symlinks=True):
         else:
             aws_s3_cmd = 'cp'
         s3_output_subdir = str(path).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
-        s3_output_dir = f'{OUTPUT_DIR}{s3_output_subdir}'
+        s3_output_dir = f'{output_dir}{s3_output_subdir}'
         execute_command(f'aws s3 {aws_s3_cmd} {path} {s3_output_dir}', ignore_errors=True)
-    # Upload the Nextflow directory, the --exclude here works since no file will be symlinked to
-    # the work dir
+    # Upload the Nextflow directory, excluding work directory (i.e. NF cache)
     if NEXTFLOW_DIR.exists():
         LOGGER.info('uploading Nextflow directory (excluding work directory)')
         s3_output_subdir = str(NEXTFLOW_DIR).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
-        s3_output_dir = f'{OUTPUT_DIR}{s3_output_subdir}'
+        s3_output_dir = f'{output_dir}{s3_output_subdir}'
         command = f'aws s3 sync --exclude=\'*{WORK_DIR.name}/*\' {NEXTFLOW_DIR} {s3_output_dir}'
         execute_command(command, ignore_errors=True)
     else:
         LOGGER.info(f'Nextflow directory \'{NEXTFLOW_DIR}\' does not exist, skipping')
-    # Finally upload the work dir, include symlinks only if requested
-    if WORK_DIR.exists():
-        LOGGER.info('uploading Nextflow work directory')
-        s3_output_subdir = str(WORK_DIR).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
-        s3_output_dir = f'{OUTPUT_DIR}{s3_output_subdir}'
-        if ignore_work_dir_symlinks:
+    # Finally upload the work directory if required
+    if upload_nf_cache:
+        if WORK_DIR.exists():
+            LOGGER.info('uploading Nextflow work directory')
+            s3_output_subdir = str(WORK_DIR).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
+            s3_output_dir = f'{output_dir}{s3_output_subdir}'
             command = f'aws s3 sync --no-follow-symlinks {WORK_DIR} {s3_output_dir}'
+            execute_command(command, ignore_errors=True)
         else:
-            command = f'aws s3 sync --follow-symlinks {WORK_DIR} {s3_output_dir}'
-        execute_command(command, ignore_errors=True)
-    else:
-        LOGGER.info(f'Nextflow work directory \'{WORK_DIR}\' does not exist, skipping')
-
-
-def handle_signal(signum, frame):
-    LOGGER.critical(f'catching {signal.Signals(signum)._name_}, uploading files before exiting')
-    upload_data_outputs(ignore_work_dir_symlinks=False)
-    signal.signal(signum, signal.SIG_DFL)
-    signal.raise_signal(signum)
+            LOGGER.info(f'Nextflow work directory \'{WORK_DIR}\' does not exist, skipping')
 
 
 if __name__ == '__main__':

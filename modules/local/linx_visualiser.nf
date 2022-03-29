@@ -1,12 +1,12 @@
 process VISUALISER {
-  publishDir "${params.output_dir}", mode: "${params.publish_mode}"
+  publishDir "${params.output_dir}", mode: "${params.publish_mode}", saveAs: { dp -> 'linx/plots/' }
 
   input:
   tuple val(meta), path(linx)
   path(ensembl_data_dir)
 
   output:
-  tuple val(meta), path('linx_visualiser/')
+  tuple val(meta), path('linx_visualiser/plot/')
 
   script:
   """
