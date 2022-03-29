@@ -37,7 +37,7 @@ pip install -r requirements.txt
 ### Build Docker image
 Configure
 ```bash
-VERSION=0.1.5
+VERSION=0.1.6
 AWS_PROVIDER_URL=843407916570.dkr.ecr.ap-southeast-2.amazonaws.com
 # Build
 docker build -t ${AWS_PROVIDER_URL}/gpl-nf:${VERSION} -f docker/Dockerfile .
