@@ -18,7 +18,7 @@ class GplStack(core.Stack):
         vpc = ec2.Vpc.from_lookup(
             self,
             'MainVPC',
-            vpc_id='vpc-00eafc63c0dfca266',
+            vpc_id=props['vpc_id'],
         )
 
         batch_instance_role = iam.Role(
