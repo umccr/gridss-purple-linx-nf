@@ -12,7 +12,7 @@ RUN \
     openjdk \
     repeatmasker \
     'R >=4' \
-    'samtools >=1.13' && \
+    'samtools ==1.14' && \
   mamba clean --all --force-pkgs-dirs --yes
 
 ENV LD_LIBRARY_PATH="/usr/lib/x86_64-linux-gnu/:/opt/conda/lib:${LD_LIBRARY_PATH}"

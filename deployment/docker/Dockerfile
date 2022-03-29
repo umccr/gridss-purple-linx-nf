@@ -14,7 +14,7 @@ RUN \
     -c bioconda \
     -c conda-forge \
     -c defaults \
-    bcftools \
+    'bcftools ==1.14' \
     boto3 \
     nextflow \
     r-gpgr \
