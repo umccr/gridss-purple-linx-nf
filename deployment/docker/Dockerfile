@@ -1,4 +1,4 @@
-FROM scwatts/gpl:0.1.6
+FROM scwatts/gpl:0.1.7
 
 # Install lndir, only available through system package manager
 RUN \
@@ -14,7 +14,7 @@ RUN \
     -c bioconda \
     -c conda-forge \
     -c defaults \
-    bcftools \
+    'bcftools ==1.14' \
     boto3 \
     nextflow \
     r-gpgr \
