@@ -1,4 +1,4 @@
-FROM scwatts/gridss_deps:0.1.6 as base
+FROM scwatts/gridss_deps:0.1.7 as base
 
 # Install parallel to download some files
 RUN \
