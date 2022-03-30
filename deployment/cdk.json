@@ -6,7 +6,6 @@
       "output_bucket": "umccr-primary-data-dev",
       "reference_data": "s3://umccr-refdata-dev/gpl-nf/",
       "portal_api_base_url": "https://api.data.dev.umccr.org",
-      "vpc_id": "vpc-00eafc63c0dfca266",
       "slack_notify": "no"
     },
     "prod": {
@@ -14,7 +13,6 @@
       "output_bucket": "umccr-primary-data-prod",
       "reference_data": "s3://umccr-refdata-dev/gpl-nf/",
       "portal_api_base_url": "https://api.data.prod.umccr.org",
-      "vpc_id": "vpc-0dc99f521ceaa3f2d",
       "slack_notify": "no"
     }
   }

@@ -17,8 +17,9 @@ class GplStack(core.Stack):
         # Batch
         vpc = ec2.Vpc.from_lookup(
             self,
-            'MainVPC',
-            vpc_id=props['vpc_id'],
+            'VPC',
+            vpc_name='main-vpc',
+            tags={'Stack': 'networking'},
         )
 
         batch_instance_role = iam.Role(
@@ -48,10 +49,11 @@ class GplStack(core.Stack):
             ]
         )
 
-        batch_security_group = ec2.SecurityGroup.from_security_group_id(
+        batch_security_group = ec2.SecurityGroup.from_lookup_by_name(
             self,
             'SecruityGroupOutBoundOnly',
-            'sg-0e4269cd9c7c1765a',
+            'main-vpc-sg-outbound',
+            vpc,
         )
 
         block_device_mappings = [
