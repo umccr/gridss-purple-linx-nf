@@ -1,4 +1,6 @@
 process PREPROCESS {
+  memory params.mem_gridss
+
   input:
   tuple val(meta), path(tumor_bam), path(normal_bam)
   path(ref_data_genome_dir)

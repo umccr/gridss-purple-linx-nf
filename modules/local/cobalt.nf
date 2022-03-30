@@ -1,4 +1,6 @@
 process COBALT {
+  memory params.mem_cobalt
+
   input:
   tuple val(meta), path(tumor_bam), path(normal_bam), path(tumor_bai), path(normal_bai)
   path(gc_profile)

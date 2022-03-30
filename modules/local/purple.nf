@@ -6,6 +6,8 @@
 process PURPLE {
   publishDir "${params.output_dir}", mode: "${params.publish_mode}"
 
+  memory params.mem_purple
+
   input:
   tuple val(meta), path(amber), path(cobalt), path(sv_soft_vcf), path(sv_soft_vcf_index), path(sv_hard_vcf), path(sv_hard_vcf_index), path(smlv_tumor_vcf)
   path(ref_data_genome_dir)

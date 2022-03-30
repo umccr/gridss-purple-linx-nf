@@ -1,6 +1,8 @@
 process ANNOTATE {
   publishDir "${params.output_dir}", mode: "${params.publish_mode}", saveAs: { fp -> "gridss/${file(fp).getName()}" }
 
+  memory params.mem_gridss
+
   input:
   tuple val(meta), path(gridss_vcf)
 
