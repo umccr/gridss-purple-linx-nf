@@ -231,7 +231,7 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
     output_dir = f's3://{OUTPUT_BUCKET}/{output_prefix_base}/gridss_purple_linx/'
     # Create and return submission data dict
     return {
-        'job_name': f'gpl_shortcut_{identifier}',
+        'job_name': f'gpl_{identifier}',
         'tumor_name': f'{subject_id}_{tumor_sample_md["sample_id"]}_{tumor_sample_md["library_id"]}',
         'normal_name': f'{subject_id}_{normal_sample_md["sample_id"]}_{normal_sample_md["library_id"]}',
         'tumor_bam': tumor_bam,
