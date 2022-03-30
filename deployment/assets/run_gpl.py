@@ -385,7 +385,7 @@ def get_config_params(config_settings):
         'mem_amber = \'14G\'',
         'mem_cobalt = \'14G\'',
         'mem_gridss = \'14G\'',
-        'mem_gripss = \'26G\'',
+        'mem_gripss = \'14G\'',
         'mem_linx = \'14G\'',
         'mem_purple = \'14G\'',
         'jar_amber = \'/opt/hmftools/amber.jar\'',
