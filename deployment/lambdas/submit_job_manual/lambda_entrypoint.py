@@ -92,8 +92,8 @@ def main(event, context):
         containerOverrides={
             'command': command_full,
             'resourceRequirements': [
-                {'type': 'MEMORY', 'value': instance_memory},
-                {'type': 'VCPU', 'value': instance_vcpus},
+                {'type': 'MEMORY', 'value': str(instance_memory)},
+                {'type': 'VCPU', 'value': str(instance_vcpus)},
             ],
         }
     )
