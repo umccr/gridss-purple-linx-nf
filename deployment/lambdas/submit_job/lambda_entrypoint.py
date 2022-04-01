@@ -207,7 +207,7 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
         *get_subject_files(subject_id, '.bam', api_auth),
         *get_subject_files(subject_id, '.vcf.gz', api_auth),
     ]
-    # NOTE(SW): some files are not uniquely named between multiple runs (e.g. normal BAM, manta BAM)
+    # NOTE(SW): some files are not uniquely named between multiple runs (e.g. normal BAM, manta VCF)
     # so we must select the desired run directory to obtain required files. The tumor BAM filename
     # is inherently unique across runs under the assumption that there are no run duplications. So
     # we obtain the correct run directory from the tumor BAM filepath and filter the input file
