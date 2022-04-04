@@ -277,4 +277,4 @@ class GplStack(core.Stack):
             bucket_name=props['output_bucket'],
         )
         for role in roles_s3_write_access:
-            output_bucket.grant_read_write(role)
+            output_bucket.grant_read_write(role, '*/gridss_purple_linx/*')
