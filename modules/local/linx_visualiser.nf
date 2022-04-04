@@ -1,6 +1,8 @@
 process VISUALISER {
   publishDir "${params.output_dir}", mode: "${params.publish_mode}", saveAs: { dp -> 'linx/plots/' }
 
+  memory params.mem_linx
+
   input:
   tuple val(meta), path(linx)
   path(ensembl_data_dir)

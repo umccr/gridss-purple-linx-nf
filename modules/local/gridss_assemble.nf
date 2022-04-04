@@ -1,4 +1,6 @@
 process ASSEMBLE {
+  memory params.mem_gridss
+
   input:
   tuple val(meta), path(tumor_bam), path(normal_bam), val(gridss_preprocessed)
 

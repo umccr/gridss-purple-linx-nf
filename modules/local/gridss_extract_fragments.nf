@@ -1,4 +1,6 @@
 process EXTRACT_FRAGMENTS {
+  memory params.mem_gridss
+
   input:
   tuple val(meta), path(bam), path(bai), path(manta_vcf)
 

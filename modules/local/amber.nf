@@ -1,4 +1,6 @@
 process AMBER {
+  memory params.mem_amber
+
   input:
   tuple val(meta), path(tumor_bam), path(normal_bam), path(tumor_bai), path(normal_bai)
   path(loci)

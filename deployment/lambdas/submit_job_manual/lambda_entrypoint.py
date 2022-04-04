@@ -90,9 +90,11 @@ def main(event, context):
         jobQueue=BATCH_QUEUE_NAME,
         jobDefinition=job_definition_arn,
         containerOverrides={
-            'memory': instance_memory,
-            'vcpus': instance_vcpus,
             'command': command_full,
+            'resourceRequirements': [
+                {'type': 'MEMORY', 'value': str(instance_memory)},
+                {'type': 'VCPU', 'value': str(instance_vcpus)},
+            ],
         }
     )
     if not (job_id := response_job.get('jobId')):

@@ -35,9 +35,35 @@ pip install -r requirements.txt
 ```
 
 ### Build Docker image
-Configure
+>It is assumed that an ECR repository named `gpl-nf` has been manually created. For cross-account access of the Docker
+>image (i.e. prod pulling from dev), you must set a IAM policy containing a permission statement such as:
+```JSON
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "new statement",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::472057503814:root"
+      },
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:DescribeImages",
+        "ecr:DescribeRepositories",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:GetRepositoryPolicy",
+        "ecr:ListImages"
+      ]
+    }
+  ]
+}
+```
+
+Build and upload Docker image
 ```bash
-VERSION=0.1.9
+VERSION=0.1.10
 AWS_PROVIDER_URL=843407916570.dkr.ecr.ap-southeast-2.amazonaws.com
 # Build
 docker build -t ${AWS_PROVIDER_URL}/gpl-nf:${VERSION} -f docker/Dockerfile .

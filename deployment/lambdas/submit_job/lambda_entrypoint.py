@@ -207,10 +207,18 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
         *get_subject_files(subject_id, '.bam', api_auth),
         *get_subject_files(subject_id, '.vcf.gz', api_auth),
     ]
+    # NOTE(SW): some files are not uniquely named between multiple runs (e.g. normal BAM, manta VCF)
+    # so we must select the desired run directory to obtain required files. The tumor BAM filename
+    # is inherently unique across runs under the assumption that there are no run duplications. So
+    # we obtain the correct run directory from the tumor BAM filepath and filter the input file
+    # list.
     tumor_bam = get_file_path(get_bam_pattern(tumor_sample_md), file_list)
-    normal_bam = get_file_path(get_bam_pattern(normal_sample_md), file_list)
-    tumor_smlv_vcf = get_file_path(fr'^.+{subject_id}-[^-]+-annotated.vcf.gz$', file_list)
-    tumor_sv_vcf = get_file_path(fr'^.+{subject_id}-manta.vcf.gz$', file_list)
+    date_dirname = get_date_dirname(tumor_bam)
+    file_list_date_dir = [fp for fp in file_list if date_dirname in fp]
+    # Collect remaining files
+    normal_bam = get_file_path(get_bam_pattern(normal_sample_md), file_list_date_dir)
+    tumor_smlv_vcf = get_file_path(fr'^.+{subject_id}-[^-]+-annotated.vcf.gz$', file_list_date_dir)
+    tumor_sv_vcf = get_file_path(fr'^.+{subject_id}-manta.vcf.gz$', file_list_date_dir)
     # Set output directory using tumor BAM path
     if not (re_result := re.match(r'^s3://[^/]+/(.+?)/final/.+$', tumor_bam)):
         msg = (
@@ -231,7 +239,7 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
     output_dir = f's3://{OUTPUT_BUCKET}/{output_prefix_base}/gridss_purple_linx/'
     # Create and return submission data dict
     return {
-        'job_name': f'gpl_shortcut_{identifier}',
+        'job_name': f'gpl_{identifier}',
         'tumor_name': f'{subject_id}_{tumor_sample_md["sample_id"]}_{tumor_sample_md["library_id"]}',
         'normal_name': f'{subject_id}_{normal_sample_md["sample_id"]}_{normal_sample_md["library_id"]}',
         'tumor_bam': tumor_bam,
@@ -252,3 +260,11 @@ def get_subject_files(subject_id, pattern, api_auth):
     for entry in entries_all:
         filepaths.append(f's3://{entry["bucket"]}/{entry["key"]}')
     return filepaths
+
+
+def get_date_dirname(fp):
+    if not (regex_result := re.match('^.+/WGS/([0-9]{4}-[0-9]{2}-[0-9]{2})/final/.+$', fp)):
+        msg = f'could not obtain required date directory from the tumor BAM: {fp}'
+        LOGGER.critical(msg)
+        raise ValueError(msg)
+    return regex_result.group(1)

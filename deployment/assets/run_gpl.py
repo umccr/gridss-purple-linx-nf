@@ -82,7 +82,7 @@ def get_arguments():
             help='Output S3 path')
     parser.add_argument('--cpu_count', type=int, required=True,
             help='Number of CPUs to use')
-    parser.add_argument('--nextflow_args_str', required=False,
+    parser.add_argument('--nextflow_args_str', required=False, default='',
             help='Additional Nextflow arguments as a quoted string')
     args = parser.parse_args()
     args.output_dir = args.output_dir if args.output_dir.endswith('/') else f'{args.output_dir}/'
@@ -385,7 +385,7 @@ def get_config_params(config_settings):
         'mem_amber = \'14G\'',
         'mem_cobalt = \'14G\'',
         'mem_gridss = \'14G\'',
-        'mem_gripss = \'26G\'',
+        'mem_gripss = \'14G\'',
         'mem_linx = \'14G\'',
         'mem_purple = \'14G\'',
         'jar_amber = \'/opt/hmftools/amber.jar\'',

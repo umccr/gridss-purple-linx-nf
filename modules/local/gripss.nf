@@ -1,6 +1,8 @@
 process GRIPSS {
   publishDir "${params.output_dir}", mode: "${params.publish_mode}", saveAs: { fp -> "gripss/${fp}" }
 
+  memory params.mem_gripss
+
   input:
   tuple val(meta), path(gridss_vcf)
   path(ref_data_genome_dir)
