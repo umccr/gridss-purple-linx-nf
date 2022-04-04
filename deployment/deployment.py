@@ -207,7 +207,7 @@ class GplStack(core.Stack):
             runtime=lmbda.Runtime.PYTHON_3_8,
             code=lmbda.Code.from_asset('lambdas/submit_job_manual/'),
             environment={
-                'REFERENCE_DATA': f's3://{props["reference_data_bucket"]}/{props["reference_data_prefix"]}/',
+                'REFERENCE_DATA': props['reference_data'],
                 'BATCH_QUEUE_NAME': props['batch_queue_name'],
                 'JOB_DEFINITION_ARN': batch_job_definition.job_definition_arn,
                 'JOB_DEFINITION_NAME': props['job_definition_name'],
@@ -265,14 +265,6 @@ class GplStack(core.Stack):
                 util_layer,
             ],
         )
-
-        # S3 reference data bucket requires granting read access in prod
-        refdata_bucket = s3.Bucket.from_bucket_name(
-            self,
-            'RefdataBucket',
-            bucket_name=props['reference_data_bucket'],
-        )
-        refdata_bucket.grant_read(batch_instance_role)
 
         # S3 output directory
         roles_s3_write_access = [
