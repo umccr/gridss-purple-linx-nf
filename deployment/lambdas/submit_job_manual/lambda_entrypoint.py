@@ -45,10 +45,8 @@ def main(event, context):
     LOGGER.info(f'event: {json.dumps(event)}')
     LOGGER.info(f'context: {json.dumps(util.get_context_info(context))}')
 
-    # Check inputs and ensure that output directory is writable
+    # Check inputs
     if response_error := validate_event_data(event):
-        return response_error
-    if response_error := check_s3_output_dir_writable(event['output_dir']):
         return response_error
 
     # Construct command
@@ -292,19 +290,6 @@ def check_s3_file_exists(bucket, key, error_store):
     except botocore.exceptions.ClientError as e:
         error = e.response['Error']
         error_store.append((error['Code'], error['Message'], f's://{bucket}/{key}'))
-
-
-def check_s3_output_dir_writable(output_dir):
-    s3_path_components = match_s3_path(output_dir)
-    bucket = s3_path_components['bucket_name']
-    key = s3_path_components['key']
-    try:
-        key_test = f'{key}/permissions_test'
-        CLIENT_S3.put_object(Body='perm_test', Bucket=bucket, Key=key_test)
-        CLIENT_S3.delete_object(Bucket=bucket, Key=key_test)
-    except botocore.exceptions.ClientError:
-        msg = f'could not write to \'output_dir\' \'{output_dir}\''
-        return log_error_and_get_response(msg)
 
 
 def get_job_definition_arn(docker_image_tag):
