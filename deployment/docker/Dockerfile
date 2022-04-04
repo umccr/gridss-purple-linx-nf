@@ -1,4 +1,4 @@
-FROM scwatts/gpl:0.1.11
+FROM scwatts/gpl:0.1.12
 
 # Install lndir, only available through system package manager
 RUN \
