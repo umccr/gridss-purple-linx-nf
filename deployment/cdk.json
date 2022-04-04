@@ -2,7 +2,7 @@
   "app": "python3 app.py",
   "context": {
     "dev": {
-      "container_image": "843407916570.dkr.ecr.ap-southeast-2.amazonaws.com/gpl-nf:0.1.10",
+      "container_image": "843407916570.dkr.ecr.ap-southeast-2.amazonaws.com/gpl-nf:0.1.11",
       "output_bucket": "umccr-primary-data-dev",
       "reference_data_bucket": "umccr-refdata-dev",
       "reference_data_prefix": "gpl-nf",
@@ -10,7 +10,7 @@
       "slack_notify": "no"
     },
     "prod": {
-      "container_image": "843407916570.dkr.ecr.ap-southeast-2.amazonaws.com/gpl-nf:0.1.10",
+      "container_image": "843407916570.dkr.ecr.ap-southeast-2.amazonaws.com/gpl-nf:0.1.11",
       "output_bucket": "umccr-primary-data-prod",
       "reference_data_bucket": "umccr-refdata-prod",
       "reference_data_prefix": "gpl-nf",
