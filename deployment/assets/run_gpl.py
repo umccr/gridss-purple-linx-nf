@@ -442,6 +442,7 @@ def get_config_misc():
 def upload_data_outputs(output_dir, upload_nf_cache):
     # Upload main outputs
     LOGGER.info('uploading main outputs')
+    commands_failed = list()
     for path in OUTPUT_LOCAL_DIR.iterdir():
         if path == NEXTFLOW_DIR:
             continue
@@ -451,14 +452,19 @@ def upload_data_outputs(output_dir, upload_nf_cache):
             aws_s3_cmd = 'cp'
         s3_output_subdir = str(path).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
         s3_output_dir = f'{output_dir}{s3_output_subdir}'
-        execute_command(f'aws s3 {aws_s3_cmd} {path} {s3_output_dir}', ignore_errors=True)
+        command = f'aws s3 {aws_s3_cmd} {path} {s3_output_dir}'
+        result = execute_command(command, ignore_errors=True)
+        if result.returncode != 0:
+            commands_failed.append(command)
     # Upload the Nextflow directory, excluding work directory (i.e. NF cache)
     if NEXTFLOW_DIR.exists():
         LOGGER.info('uploading Nextflow directory (excluding work directory)')
         s3_output_subdir = str(NEXTFLOW_DIR).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
         s3_output_dir = f'{output_dir}{s3_output_subdir}'
         command = f'aws s3 sync --exclude=\'*{WORK_DIR.name}/*\' {NEXTFLOW_DIR} {s3_output_dir}'
-        execute_command(command, ignore_errors=True)
+        result = execute_command(command, ignore_errors=True)
+        if result.returncode != 0:
+            commands_failed.append(command)
     else:
         LOGGER.info(f'Nextflow directory \'{NEXTFLOW_DIR}\' does not exist, skipping')
     # Finally upload the work directory if required
@@ -468,9 +474,17 @@ def upload_data_outputs(output_dir, upload_nf_cache):
             s3_output_subdir = str(WORK_DIR).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
             s3_output_dir = f'{output_dir}{s3_output_subdir}'
             command = f'aws s3 sync --no-follow-symlinks {WORK_DIR} {s3_output_dir}'
-            execute_command(command, ignore_errors=True)
+            result = execute_command(command, ignore_errors=True)
+            if result.returncode != 0:
+                commands_failed.append(command)
         else:
             LOGGER.info(f'Nextflow work directory \'{WORK_DIR}\' does not exist, skipping')
+    # Check for upload failures
+    if commands_failed:
+        plurality = 'uploads' if len(commands_failed) > 1 else 'upload'
+        commands = '\n\t'.join(commands_failed)
+        LOGGER.critical(f'Failed to complete {plurality} for:\n\t{commands}')
+        sys.exit(1)
 
 
 if __name__ == '__main__':
