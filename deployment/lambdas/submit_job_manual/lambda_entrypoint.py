@@ -16,9 +16,6 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 
-#SLACK_NOTIFY = get_environment_variable('SLACK_NOTIFY')
-#SLACK_HOST = get_environment_variable('SLACK_HOST')
-#SLACK_CHANNEL = get_environment_variable('SLACK_CHANNEL')
 REFERENCE_DATA = util.get_environment_variable('REFERENCE_DATA')
 BATCH_QUEUE_NAME = util.get_environment_variable('BATCH_QUEUE_NAME')
 JOB_DEFINITION_ARN = util.get_environment_variable('JOB_DEFINITION_ARN')

@@ -211,9 +211,6 @@ class GplStack(core.Stack):
                 'BATCH_QUEUE_NAME': props['batch_queue_name'],
                 'JOB_DEFINITION_ARN': batch_job_definition.job_definition_arn,
                 'JOB_DEFINITION_NAME': props['job_definition_name'],
-                #'SLACK_NOTIFY': props['slack_notify'],
-                #'SLACK_HOST': props['slack_host'],
-                #'SLACK_CHANNEL': props['slack_channel'],
             },
             role=submit_job_manual_lambda_role,
             layers=[
