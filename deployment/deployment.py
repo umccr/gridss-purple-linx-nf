@@ -165,7 +165,6 @@ class GplStack(core.Stack):
             assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
-                iam.ManagedPolicy.from_aws_managed_policy_name('AmazonSSMReadOnlyAccess'),
                 iam.ManagedPolicy.from_aws_managed_policy_name('AmazonS3ReadOnlyAccess'),
             ]
         )
@@ -239,7 +238,6 @@ class GplStack(core.Stack):
             inline_policies=[submit_job_lambda_role_policy],
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
-                iam.ManagedPolicy.from_aws_managed_policy_name('AmazonSSMReadOnlyAccess'),
             ]
         )
 
