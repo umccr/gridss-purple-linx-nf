@@ -30,7 +30,7 @@ def main(event, context):
 
     # Grab some information about requested plot for selected transcripts
     if 'transcript_ids' in event:
-        svs_fp = f'{linx_annotations_dir}/{event["sample_id"]}.linx.svs.tsv'
+        svs_fp = f'{linx_annotations_dir}{event["sample_id"]}.linx.svs.tsv'
         gene_data_fp = f'{ensembl_data_cache_dir}ensembl_gene_data.csv'
         cluster_transcripts = get_cluster_transcripts(svs_fp)
         gene_data = get_gene_data(gene_data_fp)
@@ -101,7 +101,7 @@ def validate_event_data(event):
 
 def download_linx_annotation_data(gpl_directory):
     s3_path = f's3://{OUTPUT_BUCKET}/{gpl_directory}/linx/annotations/'
-    local_path = '/tmp/linx_annotations'
+    local_path = '/tmp/linx_annotations/'
     execute_command(f'aws s3 sync {s3_path} {local_path}/')
     return local_path
 
@@ -161,8 +161,8 @@ def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event):
     plot_options = ' '.join(plot_options_list)
     # Set outputs
     output_base_dir = f'/tmp/linx/'
-    output_plot_dir = f'{output_base_dir}/plot/'
-    output_data_dir = f'{output_base_dir}/data/'
+    output_plot_dir = f'{output_base_dir}plot/'
+    output_data_dir = f'{output_base_dir}data/'
     # Construct full command
     command = (f'''
       java \
