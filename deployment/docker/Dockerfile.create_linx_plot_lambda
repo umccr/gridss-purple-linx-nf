@@ -32,9 +32,10 @@ RUN \
   ./aws/install --bin-dir /usr/bin && \
   rm -r awscli.zip aws/
 
-COPY lambdas/layers/util/ /temp/util/
+COPY lambdas/layers/util/ /tmp/util/
 RUN \
-  pip install awslambdaric /temp/util/ --target "${LAMBDA_TASK_ROOT}"
+  pip install awslambdaric /tmp/util/ --target "${LAMBDA_TASK_ROOT}" && \
+  rm -r /tmp/util/
 
 COPY lambdas/create_linx_plot/lambda_entrypoint.py "${LAMBDA_TASK_ROOT}"
 
