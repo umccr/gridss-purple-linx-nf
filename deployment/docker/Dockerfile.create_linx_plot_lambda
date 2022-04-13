@@ -34,7 +34,7 @@ RUN \
 
 COPY lambdas/layers/util/ /tmp/util/
 RUN \
-  pip install awslambdaric /tmp/util/ --target "${LAMBDA_TASK_ROOT}" && \
+  pip install --no-cache-dir awslambdaric /tmp/util/ --target "${LAMBDA_TASK_ROOT}" && \
   rm -r /tmp/util/
 
 COPY lambdas/create_linx_plot/lambda_entrypoint.py "${LAMBDA_TASK_ROOT}"
