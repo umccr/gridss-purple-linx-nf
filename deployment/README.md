@@ -144,8 +144,8 @@ aws lambda invoke \
     }' \
   response.json
 ```
->Some temporary requirements:
->* the `output_dir` parameter must be a 'subdirectory' of `s3://umccr-temp-dev/stephen/gpl_output/`
+> The `output_dir` must target the output S3 bucket defined in `cdk.json` and contain the prefix
+> `/gridss_purple_linx/`
 
 #### Lambda arguments
 | Argument              | Description                                                                                                   |
