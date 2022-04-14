@@ -28,27 +28,27 @@ def main(event, context):
     linx_annotations_dir = download_linx_annotation_data(event['gpl_directory'])
     ensembl_data_cache_dir = download_ensembl_data_cache()
 
-    # Grab some information about requested plot for selected transcripts
-    if 'transcript_ids' in event:
+    # Grab some information about requested plot for selected genes
+    if 'gene_ids' in event:
         svs_fp = f'{linx_annotations_dir}{event["sample_id"]}.linx.svs.tsv'
         gene_data_fp = f'{ensembl_data_cache_dir}ensembl_gene_data.csv'
-        cluster_transcripts = get_cluster_transcripts(svs_fp)
+        cluster_genes = get_cluster_genes(svs_fp)
         gene_data = get_gene_data(gene_data_fp)
-        check_plot_information(cluster_transcripts, gene_data, event)
+        check_plot_information(cluster_genes, gene_data, event)
 
     # Generate LINX plot
     plot_dir = generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event)
 
     # Upload plots
-    # TODO(SW): consider renaming so that filename encodes transcript and cluster
+    # TODO(SW): consider renaming so that filename encodes genes and cluster
     # TODO(SW): datetimestamp
     s3_linx_manual_path = f's3://{OUTPUT_BUCKET}/{event["gpl_directory"]}/linx/plots_manual/'
     command = f'aws s3 sync {plot_dir} {s3_linx_manual_path}'
     execute_command(command)
 
 
-def check_plot_information(cluster_transcripts, gene_data, event):
-    # TODO(SW): check if transcripts are found in given clusters or chromosomes
+def check_plot_information(cluster_genes, gene_data, event):
+    # TODO(SW): check if genes are found in given clusters or chromosomes
     # TODO(SW): if not, report where the are found (i.e. cluster [or nowhere] or chromosome)
     pass
 
@@ -58,7 +58,7 @@ def validate_event_data(event):
         'sample_id',
         'cluster_ids',
         'chromosomes',
-        'transcript_ids',
+        'gene_ids',
         'gpl_directory',
     ]
     args_unknown = [arg for arg in event if arg not in args_known]
@@ -75,11 +75,11 @@ def validate_event_data(event):
 
     has_cluster_ids = 'cluster_ids' in event
     has_chromosomes = 'chromosomes' in event
-    has_transcript_ids = 'transcript_ids' in event
+    has_gene_ids = 'gene_ids' in event
     if has_cluster_ids and has_chromosomes:
         raise ValueError('Got mutually exclusive arguments cluster_ids and chromosomes')
-    if not (has_cluster_ids or has_chromosomes or has_transcript_ids):
-        raise ValueError('Either cluster_ids, chromosomes, or transcript_ids is required')
+    if not (has_cluster_ids or has_chromosomes or has_gene_ids):
+        raise ValueError('Either cluster_ids, chromosomes, or gene_ids is required')
 
     if has_chromosomes:
         chrm_valid = {
@@ -113,8 +113,8 @@ def download_ensembl_data_cache():
     return local_path
 
 
-def get_cluster_transcripts(fp):
-    cluster_transcripts = dict()
+def get_cluster_genes(fp):
+    cluster_genes = dict()
     with open(fp, 'r') as fh:
         line_token_gen = (line.rstrip().split('\t') for line in fh)
         header_tokens = next(line_token_gen)
@@ -130,10 +130,10 @@ def get_cluster_transcripts(fp):
             if len(genes) == 0:
                 continue
             # Adding all geneStart and geneEntries regardless of non-empty value
-            if record.clusterId not in cluster_transcripts:
-                cluster_transcripts[record.clusterId] = set()
-            cluster_transcripts[record.clusterId].update(genes)
-    return cluster_transcripts
+            if record.clusterId not in cluster_genes:
+                cluster_genes[record.clusterId] = set()
+            cluster_genes[record.clusterId].update(genes)
+    return cluster_genes
 
 
 def get_gene_data(fp):
@@ -156,8 +156,8 @@ def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event):
         plot_options_list.append(f'-chromosome {event["chromosomes"]}')
     if 'cluster_ids' in event:
         plot_options_list.append(f'-clusterId {event["cluster_ids"]}')
-    if 'transcript_ids' in event:
-        plot_options_list.append(f'-gene {event["transcript_ids"]}')
+    if 'gene_ids' in event:
+        plot_options_list.append(f'-gene {event["gene_ids"]}')
     plot_options = ' '.join(plot_options_list)
     # Set outputs
     output_base_dir = f'/tmp/linx/'
