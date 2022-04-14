@@ -163,3 +163,33 @@ aws lambda invoke \
 | `nextflow_args_str`   | Arguments to pass to Nextflow, must be wrapped in quotes e.g. `"\"--mem_gridss 14G\""`.                       |
 | `instance_memory`     | Instance memory to provision.                                                                                 |
 | `instance_vcpus`      | Instance vCPUs to provision. *Currently only accepting 8 vCPUs per job to avoid exceeding storage limits*.    |
+
+### Manually generating LINX plots
+Genes of interest are not always rendered in the default LINX plots. To force the inclusion of a gene, you can manually
+regenerate a LINX plot using this Lambda function. You must provide either a specific chromosome or cluster identifier
+along with the appropriate gene symbol. Only genes present in the Ensembel data cache can be rendered.
+
+```bash
+aws lambda invoke \
+  --function-name gpl_create_linx_plot \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{
+      "sample_id": "SEQC-II_Tumor_50pc",
+      "cluster_ids": "0",
+      "gene_ids": "ATAD1",
+      "gpl_directory": "s3://bucket-name/key-prefix/"
+    }' \
+  response.json
+```
+
+The manually created LINX plots with be placed alongside the default LINX output, in the directory
+`./linx/plots_manual/`.
+
+#### Lambda arguments
+| Argument          | Description                                                                               |
+| ---               | ---                                                                                       |
+| `sample_id`       | Name of sample id. *Must* match LINX output file prefix.                                  |
+| `cluster_ids`     | Comma-separated list of cluster identifiers to plot. Cannot be used with `chromosomes`.   |
+| `chromsomes`      | Comma-separated list of chromosomes to plot. Cannot be used with `cluster_ids`.           |
+| `gene_ids`        | Comma-separated list of genes to plot. Must be present in the Ensembel data cache.        |
+| `gpl_directory`   | S3 path to the GRIDSS/PURPLE/LINX output.                                                 |
