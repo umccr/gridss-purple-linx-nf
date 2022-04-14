@@ -1,5 +1,5 @@
-# GRIDSS/PURPLE/Linx pipeline stack
-The AWS stack for running the GRIDSS/PURPLE/Linx (GPL) pipeline. Job orchestration and pipeline execution is handled by
+# GRIDSS/PURPLE/LINX pipeline stack
+The AWS stack for running the GRIDSS/PURPLE/LINX (GPL) pipeline. Job orchestration and pipeline execution is handled by
 Batch. Specifically, jobs are run on Batch-provisioned EC2 instances using a Docker container that includes the GPL pipeline,
 a Python wrapper script, and all required dependencies. The wrapper [Python script](assets/run_gpl.py) pulls reference and
 sample data, creates a configuration file, runs the GPL pipeline, and finally uploads results to S3.

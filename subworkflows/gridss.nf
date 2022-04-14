@@ -98,7 +98,7 @@ workflow GRIDSS {
         return has_records_vcf(vcf_fp)
       }
 
-    // Annotate with RepeatMasker, required for Linx
+    // Annotate with RepeatMasker, required for LINX
     // Format: [meta, vcf]
     ANNOTATE(ch_gridss_svs)
 
