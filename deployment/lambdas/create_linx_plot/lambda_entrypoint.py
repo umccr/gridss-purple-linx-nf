@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 import collections
+import datetime
+import glob
 import json
 import logging
+import shutil
 import subprocess
 
 
@@ -40,8 +43,6 @@ def main(event, context):
     plot_dir = generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event)
 
     # Upload plots
-    # TODO(SW): consider renaming so that filename encodes genes and cluster
-    # TODO(SW): datetimestamp
     s3_linx_manual_path = f's3://{OUTPUT_BUCKET}/{event["gpl_directory"]}/linx/plots_manual/'
     command = f'aws s3 sync {plot_dir} {s3_linx_manual_path}'
     execute_command(command)
@@ -188,7 +189,7 @@ def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event):
         plot_options_list.append(f'-gene {event["gene_ids"]}')
     plot_options = ' '.join(plot_options_list)
     # Set outputs
-    output_base_dir = f'/tmp/linx/'
+    output_base_dir = '/tmp/linx/'
     output_plot_dir = f'{output_base_dir}plot/'
     output_data_dir = f'{output_base_dir}data/'
     # Construct full command
@@ -206,6 +207,11 @@ def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event):
           {plot_options}
     ''')
     execute_command(command)
+    # Rename plots to include datetime stamp
+    dts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    for fp_src in glob.glob(f'{output_plot_dir}*.png'):
+        fp_dst = fp_src.replace('.png', f'__{dts}.png')
+        shutil.move(fp_src, fp_dst)
     return output_plot_dir
 
 
