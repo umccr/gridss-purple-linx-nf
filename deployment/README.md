@@ -165,8 +165,8 @@ aws lambda invoke \
 | `instance_vcpus`      | Instance vCPUs to provision. *Currently only accepting 8 vCPUs per job to avoid exceeding storage limits*.    |
 
 ### Manually generating LINX plots
-Genes of interest are not always rendered in the default LINX plots. To force the inclusion of a gene, you can manually
-regenerate a LINX plot using this Lambda function. You must provide either a specific chromosome or cluster identifier
+Genes of interest are not always rendered in the default LINX plots. To force the inclusion of a gene, LINX plots can be
+manually regenerated using the provided Lambda function. You must specify either a chromosome or cluster identifier
 along with the appropriate gene symbol. Only genes present in the Ensembel data cache can be rendered.
 
 ```bash
@@ -188,7 +188,7 @@ The manually created LINX plots with be placed alongside the default LINX output
 #### Lambda arguments
 | Argument          | Description                                                                               |
 | ---               | ---                                                                                       |
-| `sample_id`       | Name of sample id. *Must* match LINX output file prefix.                                  |
+| `sample_id`       | Name of sample. *Must* match LINX output file prefix.                                     |
 | `cluster_ids`     | Comma-separated list of cluster identifiers to plot. Cannot be used with `chromosomes`.   |
 | `chromsomes`      | Comma-separated list of chromosomes to plot. Cannot be used with `cluster_ids`.           |
 | `gene_ids`        | Comma-separated list of genes to plot. Must be present in the Ensembel data cache.        |
