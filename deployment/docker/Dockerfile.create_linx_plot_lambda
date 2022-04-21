@@ -1,0 +1,44 @@
+FROM condaforge/mambaforge:4.11.0-2
+
+ENV LAMBDA_TASK_ROOT=/var/task
+ENV LAMBDA_RUNTIME_DIR=/var/runtime
+
+ARG GH_BASE_URL=https://github.com/hartwigmedical/hmftools/releases/download
+RUN \
+  mkdir -p /opt/hmftools/ && \
+  wget -q -O /opt/hmftools/linx.jar "${GH_BASE_URL}/linx-v1.18/linx.jar"
+
+RUN \
+  mamba install -y \
+    -c bioconda \
+    -c conda-forge \
+    -c defaults \
+    bioconductor-gviz \
+    boto3 \
+    circos \
+    openjdk \
+    r-cowplot \
+    r-dplyr \
+    r-ggplot2 \
+    r-magick \
+    r-tidyr \
+    unzip && \
+  mamba clean --all --force-pkgs-dirs --yes
+
+# Install AWS CLI v2, appears to only be available through direct download
+RUN \
+  wget -O awscli.zip 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' && \
+  unzip awscli.zip && \
+  ./aws/install --bin-dir /usr/bin && \
+  rm -r awscli.zip aws/
+
+COPY lambdas/layers/util/ /tmp/util/
+RUN \
+  pip install --no-cache-dir awslambdaric /tmp/util/ --target "${LAMBDA_TASK_ROOT}" && \
+  rm -r /tmp/util/
+
+COPY lambdas/create_linx_plot/lambda_entrypoint.py "${LAMBDA_TASK_ROOT}"
+
+WORKDIR ${LAMBDA_TASK_ROOT}
+ENTRYPOINT [ "python", "-m", "awslambdaric" ]
+CMD [ "lambda_entrypoint.main" ]

@@ -1,5 +1,5 @@
-# GRIDSS/PURPLE/Linx pipeline stack
-The AWS stack for running the GRIDSS/PURPLE/Linx (GPL) pipeline. Job orchestration and pipeline execution is handled by
+# GRIDSS/PURPLE/LINX pipeline stack
+The AWS stack for running the GRIDSS/PURPLE/LINX (GPL) pipeline. Job orchestration and pipeline execution is handled by
 Batch. Specifically, jobs are run on Batch-provisioned EC2 instances using a Docker container that includes the GPL pipeline,
 a Python wrapper script, and all required dependencies. The wrapper [Python script](assets/run_gpl.py) pulls reference and
 sample data, creates a configuration file, runs the GPL pipeline, and finally uploads results to S3.
@@ -63,7 +63,7 @@ pip install -r requirements.txt
 
 Build and upload Docker image
 ```bash
-VERSION=0.1.12
+VERSION=0.1.13
 AWS_PROVIDER_URL=843407916570.dkr.ecr.ap-southeast-2.amazonaws.com
 # Build
 docker build -t ${AWS_PROVIDER_URL}/gpl-nf:${VERSION} -f docker/Dockerfile .
@@ -144,8 +144,8 @@ aws lambda invoke \
     }' \
   response.json
 ```
->Some temporary requirements:
->* the `output_dir` parameter must be a 'subdirectory' of `s3://umccr-temp-dev/stephen/gpl_output/`
+> The `output_dir` must target the output S3 bucket defined in `cdk.json` and contain the prefix
+> `/gridss_purple_linx/`
 
 #### Lambda arguments
 | Argument              | Description                                                                                                   |
@@ -163,3 +163,33 @@ aws lambda invoke \
 | `nextflow_args_str`   | Arguments to pass to Nextflow, must be wrapped in quotes e.g. `"\"--mem_gridss 14G\""`.                       |
 | `instance_memory`     | Instance memory to provision.                                                                                 |
 | `instance_vcpus`      | Instance vCPUs to provision. *Currently only accepting 8 vCPUs per job to avoid exceeding storage limits*.    |
+
+### Manually generating LINX plots
+Genes of interest are not always rendered in the default LINX plots. To force the inclusion of a gene, LINX plots can be
+manually regenerated using the provided Lambda function. You must specify either a chromosome or cluster identifier
+along with the appropriate gene symbol. Only genes present in the Ensembel data cache can be rendered.
+
+```bash
+aws lambda invoke \
+  --function-name gpl_create_linx_plot \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{
+      "sample_id": "SEQC-II_Tumor_50pc",
+      "cluster_ids": "0",
+      "gene_ids": "ATAD1",
+      "gpl_directory": "s3://bucket-name/key-prefix/"
+    }' \
+  response.json
+```
+
+The manually created LINX plots with be placed alongside the default LINX output, in the directory
+`./linx/plots_manual/`.
+
+#### Lambda arguments
+| Argument          | Description                                                                               |
+| ---               | ---                                                                                       |
+| `sample_id`       | Name of sample. *Must* match LINX output file prefix.                                     |
+| `cluster_ids`     | Comma-separated list of cluster identifiers to plot. Cannot be used with `chromosomes`.   |
+| `chromsomes`      | Comma-separated list of chromosomes to plot. Cannot be used with `cluster_ids`.           |
+| `gene_ids`        | Comma-separated list of genes to plot. Must be present in the Ensembel data cache.        |
+| `gpl_directory`   | S3 path to the GRIDSS/PURPLE/LINX output.                                                 |

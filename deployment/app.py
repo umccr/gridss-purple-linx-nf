@@ -18,8 +18,6 @@ stack_props = {
     'namespace': 'gpl',
     'batch_queue_name': 'gpl-job-queue',
     'job_definition_name': 'gpl',
-    'slack_host': 'hooks.slack.com',
-    'slack_channel': '#arteria-dev',
     'batch_resource_tags': tags,
 }
 

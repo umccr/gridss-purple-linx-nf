@@ -165,7 +165,6 @@ class GplStack(core.Stack):
             assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
-                iam.ManagedPolicy.from_aws_managed_policy_name('AmazonSSMReadOnlyAccess'),
                 iam.ManagedPolicy.from_aws_managed_policy_name('AmazonS3ReadOnlyAccess'),
             ]
         )
@@ -211,9 +210,6 @@ class GplStack(core.Stack):
                 'BATCH_QUEUE_NAME': props['batch_queue_name'],
                 'JOB_DEFINITION_ARN': batch_job_definition.job_definition_arn,
                 'JOB_DEFINITION_NAME': props['job_definition_name'],
-                #'SLACK_NOTIFY': props['slack_notify'],
-                #'SLACK_HOST': props['slack_host'],
-                #'SLACK_CHANNEL': props['slack_channel'],
             },
             role=submit_job_manual_lambda_role,
             layers=[
@@ -242,7 +238,6 @@ class GplStack(core.Stack):
             inline_policies=[submit_job_lambda_role_policy],
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
-                iam.ManagedPolicy.from_aws_managed_policy_name('AmazonSSMReadOnlyAccess'),
             ]
         )
 
@@ -266,10 +261,43 @@ class GplStack(core.Stack):
             ],
         )
 
+        # Lambda function: create LINX plots
+        create_linx_plot_lambda_role = iam.Role(
+            self,
+            'CreateLinxPlotLambdaRole',
+            assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
+            managed_policies=[
+                iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
+                iam.ManagedPolicy.from_aws_managed_policy_name('AmazonS3ReadOnlyAccess'),
+            ]
+        )
+
+        create_linx_plot_docker_image = lmbda.Code.from_asset_image(
+            directory='./',
+            file='docker/Dockerfile.create_linx_plot_lambda',
+        )
+
+        submit_job_manual_lambda = lmbda.Function(
+            self,
+            'CreateLinxPlotLambda',
+            function_name=f'{props["namespace"]}_create_linx_plot',
+            code=create_linx_plot_docker_image,
+            handler=lmbda.Handler.FROM_IMAGE,
+            runtime=lmbda.Runtime.FROM_IMAGE,
+            timeout=core.Duration.minutes(10),
+            memory_size=5120,
+            environment={
+                'OUTPUT_BUCKET': props['output_bucket'],
+                'REFERENCE_DATA': props['reference_data'],
+            },
+            role=create_linx_plot_lambda_role,
+        )
+
         # S3 output directory
         roles_s3_write_access = [
             batch_instance_role,
             submit_job_manual_lambda_role,
+            create_linx_plot_lambda_role,
         ]
         output_bucket = s3.Bucket.from_bucket_name(
             self,
@@ -277,4 +305,4 @@ class GplStack(core.Stack):
             bucket_name=props['output_bucket'],
         )
         for role in roles_s3_write_access:
-            output_bucket.grant_read_write(role)
+            output_bucket.grant_read_write(role, '*/gridss_purple_linx/*')

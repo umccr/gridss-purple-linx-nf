@@ -55,6 +55,3 @@ def get_context_info(context):
         'log_stream_name',
     }
     return {attr: getattr(context, attr) for attr in attributes}
-
-
-

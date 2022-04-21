@@ -5,8 +5,8 @@
 🚧🚨 <em>Under development</em> 🚨🚧
 </p>
 
-# GRIDSS/PURPLE/Linx pipeline
-A Nextflow pipeline for the GRIDSS/PURPLE/Linx (GPL) toolkit used to call and annotate structural variants. The GPL toolkit
+# GRIDSS/PURPLE/LINX pipeline
+A Nextflow pipeline for the GRIDSS/PURPLE/LINX (GPL) toolkit used to call and annotate structural variants. The GPL toolkit
 is comprised of distinct but closely integrated pieces of software that together leverage both copy number alterations and
 structural variants detected in short reads to improve calling accuracy and sensitivity.
 
@@ -63,7 +63,7 @@ an example see: [`nextflow.config`](nextflow.config)). To execute the pipeline:
 ### Useful files
 | Name                                      | Description                               |
 | ---                                       | ---                                       |
-| `<tumor_name>_linx.html`                  | gpgr Linx Rmd report                      |
+| `<tumor_name>_linx.html`                  | gpgr LINX Rmd report                      |
 | `linx_annotation/*tsv`                    | Grouped and annotated SV events           |
 | `linx_visualiser/plot/*png`               | SV event plots                            |
 | `purple/plot/*png`                        | Purity, ploidy, circos, etc plots         |
@@ -88,7 +88,7 @@ Assumes the pipeline will be executed using the provided Docker image
 * [GRIDSS](https://github.com/PapenfussLab/gridss) (v2.13.2)
 * [GRIPSS](https://github.com/hartwigmedical/hmftools/blob/master/gripss/) (v2.0)
 * [PURPLE](https://github.com/hartwigmedical/hmftools/blob/master/purple/) (v3.3)
-* [Linx](https://github.com/hartwigmedical/hmftools/blob/master/linx/) (v1.18)
+* [LINX](https://github.com/hartwigmedical/hmftools/blob/master/linx/) (v1.18)
 
 ## Reference data
 The GPL toolkit requires a number of reference files. These can be obtained from the HMF Nextcloud instance
