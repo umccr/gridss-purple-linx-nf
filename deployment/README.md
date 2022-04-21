@@ -83,7 +83,7 @@ done
 ```
 
 ### Deploy stack
-Set appropriate environment with `-c environment <dev|prod>`
+Set appropriate environment with `-c environment=<dev|prod>`
 ```bash
 cdk deploy -c environment=dev
 ```
