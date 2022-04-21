@@ -48,9 +48,37 @@ def main(event, context):
 
 
 def check_plot_information(cluster_genes, gene_data, event):
-    # TODO(SW): check if genes are found in given clusters or chromosomes
-    # TODO(SW): if not, report where the are found (i.e. cluster [or nowhere] or chromosome)
-    pass
+    # Require genes are present in Ensembl data cache
+    genes = event['gene_ids'].split(',')
+    genes_missing = list()
+    for gene in genes:
+        if gene in gene_data:
+            continue
+        genes_missing.append(gene)
+    if genes_missing:
+        genes_missing_str = '\n\t'.join(genes_missing)
+        plurality = 'genes' if len(genes_missing) > 1 else 'gene'
+        msg = f'{len(genes_missing)} {plurality} not present in the Ensembl data cache:\n\t{genes_missing_str}'
+        raise ValueError(msg)
+    # Check clusters
+    if cluster_str := event.get('cluster_ids'):
+        clusters = cluster_str.split(',')
+        for gene in genes:
+            gene_clusters = {c for c in clusters if gene in cluster_genes[c]}
+            if not gene_clusters:
+                LOGGER.warning(f'{gene} not found in any provided cluster ({cluster_str})')
+                continue
+            for cluster in gene_clusters:
+                LOGGER.info(f'{gene} found in cluster {cluster}')
+    # Check chromosomes
+    if chrom_str := event.get('chromosomes'):
+        chroms = set(chrom_str.split(','))
+        for gene in genes:
+            gene_chrom = f'chr{gene_data[gene].Chromosome}'
+            if gene_chrom in chroms:
+                LOGGER.info(f'gene {gene} found on {gene_chrom}')
+            else:
+                LOGGER.warning(f'gene {gene} present on {gene_chrom} is not in specified list ({chrom_str})')
 
 
 def validate_event_data(event):
