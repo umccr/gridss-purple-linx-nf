@@ -19,6 +19,18 @@ class GplStack(Stack):
     def __init__(self, scope, id, props, **kwargs):
         super().__init__(scope, id, **kwargs)
 
+        # Lambda Function URL CORS Setting
+        fn_url_cors_options = lmbda.FunctionUrlCorsOptions(
+            allowed_origins=[
+                'https://data.umccr.org',
+                'https://data.dev.umccr.org',
+                'https://data.prod.umccr.org',
+            ],
+            allowed_methods=[lmbda.HttpMethod.GET, lmbda.HttpMethod.POST]
+        )
+
+        fn_url_auth_type = lmbda.FunctionUrlAuthType.AWS_IAM  # IAM is the only option for now
+
         # Batch
         vpc = ec2.Vpc.from_lookup(
             self,
@@ -209,6 +221,11 @@ class GplStack(Stack):
                 util_layer,
             ],
         )
+        submit_job_manual_lambda_fn_url = submit_job_manual_lambda.add_function_url(
+            auth_type=fn_url_auth_type,
+            cors=fn_url_cors_options
+        )
+        core.CfnOutput(self, 'SubmitJobManualLambdaUrl', value=submit_job_manual_lambda_fn_url.url)
 
         # Lambda function: submit job (automated input collection)
         submit_job_lambda_role_policy = iam.PolicyDocument(
@@ -249,6 +266,11 @@ class GplStack(Stack):
                 util_layer,
             ],
         )
+        submit_job_lambda_fn_url = submit_job_lambda.add_function_url(
+            auth_type=fn_url_auth_type,
+            cors=fn_url_cors_options
+        )
+        core.CfnOutput(self, 'SubmitJobLambdaUrl', value=submit_job_lambda_fn_url.url)
 
         # Lambda function: create LINX plots
         create_linx_plot_lambda_role = iam.Role(
@@ -281,6 +303,11 @@ class GplStack(Stack):
             },
             role=create_linx_plot_lambda_role,
         )
+        create_linx_plot_lambda_fn_url = create_linx_plot_lambda.add_function_url(
+            auth_type=fn_url_auth_type,
+            cors=fn_url_cors_options
+        )
+        core.CfnOutput(self, 'CreateLinxPlotLambdaUrl', value=create_linx_plot_lambda_fn_url.url)
 
         # S3 output directory
         roles_s3_write_access = [
