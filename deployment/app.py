@@ -2,7 +2,7 @@
 import os
 
 
-from aws_cdk import core
+import aws_cdk
 
 
 from deployment import GplStack
@@ -21,13 +21,13 @@ stack_props = {
     'batch_resource_tags': tags,
 }
 
-aws_env = {
-    'account': os.environ.get('CDK_DEFAULT_ACCOUNT'),
-    'region': os.environ.get('CDK_DEFAULT_REGION'),
-}
+aws_env = aws_cdk.Environment(
+    account=os.environ['CDK_DEFAULT_ACCOUNT'],
+    region=os.environ['CDK_DEFAULT_REGION'],
+)
 
 # Configure for deploy context
-app = core.App()
+app = aws_cdk.App()
 if (deploy_context_key := app.node.try_get_context('environment')) == None:
     raise ValueError('require deployment context as \'-c environment=<key>\' where <key> is define in cdk.json')
 if (deploy_context := app.node.try_get_context(deploy_context_key)) == None:
@@ -44,6 +44,6 @@ GplStack(
 
 # Set tags
 for k, v in tags.items():
-    core.Tags.of(app).add(key=k, value=v)
-core.Tags.of(app).add(key='Name', value=stack_props['namespace'])
+    aws_cdk.Tags.of(app).add(key=k, value=v)
+aws_cdk.Tags.of(app).add(key='Name', value=stack_props['namespace'])
 app.synth()

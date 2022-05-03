@@ -1,17 +1,18 @@
 from aws_cdk import (
-    aws_batch as batch,
+    aws_batch_alpha as batch,
     aws_ec2 as ec2,
     aws_ecs as ecs,
     aws_iam as iam,
     aws_lambda as lmbda,
     aws_s3 as s3,
-    core
+    Stack,
+    Duration,
 )
 
 
-class GplStack(core.Stack):
+class GplStack(Stack):
 
-    def __init__(self, scope: core.Construct, id: str, props: dict, **kwargs) -> None:
+    def __init__(self, scope, id: str, props: dict, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
 
         # Batch
@@ -254,7 +255,7 @@ class GplStack(core.Stack):
                 'OUTPUT_BUCKET': props['output_bucket'],
             },
             role=submit_job_lambda_role,
-            timeout=core.Duration.seconds(60),
+            timeout=Duration.seconds(60),
             layers=[
                 runtime_layer,
                 util_layer,
@@ -277,14 +278,14 @@ class GplStack(core.Stack):
             file='docker/Dockerfile.create_linx_plot_lambda',
         )
 
-        submit_job_manual_lambda = lmbda.Function(
+        create_linx_plot_lambda = lmbda.Function(
             self,
             'CreateLinxPlotLambda',
             function_name=f'{props["namespace"]}_create_linx_plot',
             code=create_linx_plot_docker_image,
             handler=lmbda.Handler.FROM_IMAGE,
             runtime=lmbda.Runtime.FROM_IMAGE,
-            timeout=core.Duration.minutes(10),
+            timeout=Duration.minutes(10),
             memory_size=5120,
             environment={
                 'OUTPUT_BUCKET': props['output_bucket'],
@@ -294,9 +295,11 @@ class GplStack(core.Stack):
         )
 
         # S3 output directory
-        roles_s3_write_access = [
-            batch_instance_role,
+        roles_s3_read_access = [
             submit_job_manual_lambda_role,
+        ]
+        roles_s3_read_write_access = [
+            batch_instance_role,
             create_linx_plot_lambda_role,
         ]
         output_bucket = s3.Bucket.from_bucket_name(
@@ -304,5 +307,7 @@ class GplStack(core.Stack):
             'OutputBucket',
             bucket_name=props['output_bucket'],
         )
-        for role in roles_s3_write_access:
-            output_bucket.grant_read_write(role, '*/gridss_purple_linx/*')
+        for role in [*roles_s3_read_access, *roles_s3_read_write_access]:
+            output_bucket.grant_read(role, '*/gridss_purple_linx/*')
+        for role in roles_s3_read_write_access:
+            output_bucket.grant_put(role, '*/gridss_purple_linx/*')
