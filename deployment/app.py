@@ -15,6 +15,7 @@ tags = {
 }
 
 stack_props = {
+    'stack_name': 'gridss-purple-linx',
     'namespace': 'gpl',
     'batch_queue_name': 'gpl-job-queue',
     'job_definition_name': 'gpl',
@@ -37,7 +38,7 @@ stack_props.update(deploy_context)
 # Create stack
 GplStack(
     app,
-    stack_props['namespace'],
+    stack_props['stack_name'],
     stack_props,
     env=aws_env,
 )

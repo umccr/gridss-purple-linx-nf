@@ -12,7 +12,7 @@ from aws_cdk import (
 
 class GplStack(Stack):
 
-    def __init__(self, scope, id: str, props: dict, **kwargs) -> None:
+    def __init__(self, scope, id, props, **kwargs):
         super().__init__(scope, id, **kwargs)
 
         # Batch
