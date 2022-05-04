@@ -165,8 +165,8 @@ class GplStack(Stack):
             'SubmitJobManualLambdaRole',
             assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
             managed_policies=[
-                iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
                 iam.ManagedPolicy.from_aws_managed_policy_name('AmazonS3ReadOnlyAccess'),
+                iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
             ]
         )
 
@@ -268,8 +268,8 @@ class GplStack(Stack):
             'CreateLinxPlotLambdaRole',
             assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
             managed_policies=[
-                iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
                 iam.ManagedPolicy.from_aws_managed_policy_name('AmazonS3ReadOnlyAccess'),
+                iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
             ]
         )
 
@@ -295,10 +295,7 @@ class GplStack(Stack):
         )
 
         # S3 output directory
-        roles_s3_read_access = [
-            submit_job_manual_lambda_role,
-        ]
-        roles_s3_read_write_access = [
+        roles_s3_write_access = [
             batch_instance_role,
             create_linx_plot_lambda_role,
         ]
@@ -307,7 +304,5 @@ class GplStack(Stack):
             'OutputBucket',
             bucket_name=props['output_bucket'],
         )
-        for role in [*roles_s3_read_access, *roles_s3_read_write_access]:
-            output_bucket.grant_read(role, '*/gridss_purple_linx/*')
-        for role in roles_s3_read_write_access:
+        for role in roles_s3_write_access:
             output_bucket.grant_put(role, '*/gridss_purple_linx/*')
