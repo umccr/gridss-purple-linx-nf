@@ -229,12 +229,15 @@ def get_samples_from_subject_metadata(subject_md_all, subject_id):
         assert entry['sample_id'] not in subject_md
         subject_md[entry['sample_id']] = entry
     if len(subject_md) != 2:
-        subject_ids = '\r\t'.join(subject_md)
+        sdata = list()
+        for md in subject_md.values():
+            sdata.append(f'{md["sample_id"]} ({md["phenotype"]})')
+        sdata_str = '\n\t'.join(sdata)
         plurality = 'entry' if len(subject_md) == 1 else 'entries'
         msg = (
             f'found {len(subject_md)} WGS sample {plurality} for {subject_id} but can only proceed '
             f'using --subject_id with exactly two. Try again using --tumor_sample_id and '
-            f'--normal_sample_id. Samples found using --subject_id: {", ".join(subject_ids)}.'
+            f'--normal_sample_id. Samples found using --subject_id:\n\t{sdata_str}'
         )
         LOGGER.critical(msg)
         raise ValueError(msg)
