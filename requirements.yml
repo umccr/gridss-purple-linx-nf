@@ -1,0 +1,21 @@
+name: gridss-purple-linx-nf
+
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Base
+  - python >=3.8
+  - black
+  - bump2version
+  - flake8
+  - pip
+  - pre-commit
+  - pylint >=2.5
+  # Dependencies
+  - pip:
+      # Installed to satisify linting import rules
+      - '-r requirements.txt'
+      - '-r deployment/requirements.txt'
