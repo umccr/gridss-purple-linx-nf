@@ -63,6 +63,7 @@ def validate_event_data(event):
     args_known = [
         'sample_id',
         'cluster_ids',
+        'regions',
         'chromosomes',
         'gene_ids',
         'gpl_directory',
@@ -82,30 +83,57 @@ def validate_event_data(event):
     has_cluster_ids = 'cluster_ids' in event
     has_chromosomes = 'chromosomes' in event
     has_gene_ids = 'gene_ids' in event
+    has_regions = 'regions' in event
     if has_cluster_ids and has_chromosomes:
         raise ValueError('Got mutually exclusive arguments cluster_ids and chromosomes')
+    if has_regions and has_chromosomes:
+        raise ValueError('Got mutually exclusive arguments regions and chromosomes')
     if not (has_cluster_ids or has_chromosomes or has_gene_ids):
         raise ValueError('Either cluster_ids, chromosomes, or gene_ids is required')
 
-    if has_chromosomes:
-        chrm_valid = {
-            *{f'chr{i}' for i in range(1, 23)},
-            'chrX',
-            'chrY',
-        }
-        chrm_bad = list()
-        for chrm in event['chromosomes'].split(','):
-            if chrm not in chrm_valid:
-                chrm_bad.append(chrm)
-        if chrm_bad:
-            chrm_bad_string = ', '.join(chrm_bad)
-            plurality = 'chromosomes' if len(chrm_bad) > 1 else 'chromosome'
-            raise ValueError(f'Got unexpected {plurality}: {chrm_bad_string}')
     # Disallow trailing ';'
     if has_gene_ids and event['gene_ids'].endswith(';'):
         raise ValueError('the \'gene_ids\' option cannot end with a \';\'')
+    if has_regions:
+        # Disallow trailing ';'
+        if event['regions'].endswith(';'):
+            raise ValueError('the \'regions\' option cannot end with a \';\'')
+        # Check region tokens match expected format
+        region_regex = re.compile(r'^(chr[0-9]):([0-9]+):([0-9]+)$')
+        chrms_region = set()
+        for region in event['regions'].split(';'):
+            if not (re_result := region_regex.match(region)):
+                raise ValueError(f'could not apply regex \'{region_regex}\' to \'{region}\'')
+            chrms_region.append(re_result.group(1))
+        # Ensure that provided contigs/chromosomes are in the expected format
+        chrm_invalid = validate_chromosomes(chrms_region)
+        if chrm_invalid:
+            chrm_invalid_string = ', '.join(chrm_invalid)
+            plurality = 'chromosomes' if len(chrm_invalid) > 1 else 'chromosome'
+            msg = f'Got unexpected {plurality} for the \'regions\' option: {chrm_invalid_string}'
+            raise ValueError(msg)
 
+    if has_chromosomes:
+        chrm_invalid = validate_chromosomes(event['chromosomes'].split(','))
+        if chrm_invalid:
+            chrm_invalid_string = ', '.join(chrm_invalid)
+            plurality = 'chromosomes' if len(chrm_invalid) > 1 else 'chromosome'
+            msg = f'Got unexpected {plurality} for the \'chromosomes\' option: {chrm_invalid_string}'
+            raise ValueError(msg)
     event['gpl_directory'] = event['gpl_directory'].rstrip('/')
+
+
+def validate_chromosomes(chromosomes):
+    chrm_valid = {
+        *{f'chr{i}' for i in range(1, 23)},
+        'chrX',
+        'chrY',
+    }
+    chrm_invalid = list()
+    for chrm in event['chromosomes'].split(','):
+        if chrm not in chrm_valid:
+            chrm_invalid.append(chrm)
+    return chrm_invalid
 
 
 def download_linx_annotation_data(gpl_directory):
@@ -145,6 +173,8 @@ def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event):
     if 'gene_ids' in event:
         plot_options_list.append(f'-gene \"{event["gene_ids"]}\"')
         plot_options_list.append(f'-restrict_cluster_by_gene')
+    if 'regions' in event:
+        plot_options_list.append(f'-specific_regions \"{event["regions"]}\"')
     plot_options = ' '.join(plot_options_list)
     # Set outputs
     output_base_dir = '/tmp/linx/'
