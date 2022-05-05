@@ -50,7 +50,7 @@ def main(event, context):
 
 def check_plot_information(cluster_genes, gene_data, event):
     # Require genes are present in Ensembl data cache
-    genes = event['gene_ids'].split(',')
+    genes = event['gene_ids'].split(';')
     genes_missing = list()
     for gene in genes:
         if gene in gene_data:
@@ -124,6 +124,9 @@ def validate_event_data(event):
             chrm_bad_string = ', '.join(chrm_bad)
             plurality = 'chromosomes' if len(chrm_bad) > 1 else 'chromosome'
             raise ValueError(f'Got unexpected {plurality}: {chrm_bad_string}')
+    # Disallow trailing ';'
+    if has_gene_ids and event['gene_ids'].endswith(';'):
+        raise ValueError('the \'gene_ids\' option cannot end with a \';\'')
 
     event['gpl_directory'] = event['gpl_directory'].rstrip('/')
 
@@ -186,7 +189,7 @@ def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event):
     if 'cluster_ids' in event:
         plot_options_list.append(f'-clusterId {event["cluster_ids"]}')
     if 'gene_ids' in event:
-        plot_options_list.append(f'-gene {event["gene_ids"]}')
+        plot_options_list.append(f'-gene \"{event["gene_ids"]}\"')
     plot_options = ' '.join(plot_options_list)
     # Set outputs
     output_base_dir = '/tmp/linx/'
