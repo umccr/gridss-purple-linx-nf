@@ -1,4 +1,5 @@
 # GRIDSS/PURPLE/LINX pipeline stack
+
 The AWS stack for running the GRIDSS/PURPLE/LINX (GPL) pipeline. Job orchestration and pipeline execution is handled by
 Batch. Specifically, jobs are run on Batch-provisioned EC2 instances using a Docker container that includes the GPL pipeline,
 a Python wrapper script, and all required dependencies. The wrapper [Python script](assets/run_gpl.py) pulls reference and
@@ -10,33 +11,41 @@ This approach will continue to be the most suitable solution until Nextflow can 
 without using enterprise plugins.
 
 ## Table of contents
+
 * [Schematic](#schematic)
 * [Prerequisites](#prerequisites)
 * [Deployment](#deployment)
 * [Usage](#usage)
 
 ## Schematic
+
 <p align="center"><img src="images/schematic.png" width="80%"></p>
 
 ## Prerequisites
+
 It is assumed that the necessary VPC, security groups, and S3 buckets are appropriately deployed and configured in the target
 AWS account.
 
 ## Deployment
+
 The stack has some software requirements for deploy:
+
 * AWS CDK Toolkit (available through Homebrew or npm)
 * Docker
 * Python3
 
 ### Create virtual environment
+
 ```bash
 python3 -m venv .venv/
 pip install -r requirements.txt
 ```
 
 ### Build Docker image
+
 >It is assumed that an ECR repository named `gpl-nf` has been manually created. For cross-account access of the Docker
 >image (i.e. prod pulling from dev), you must set a IAM policy containing a permission statement such as:
+
 ```JSON
 {
   "Version": "2008-10-17",
@@ -62,6 +71,7 @@ pip install -r requirements.txt
 ```
 
 Build and upload Docker image
+
 ```bash
 VERSION=0.1.13
 AWS_PROVIDER_URL=843407916570.dkr.ecr.ap-southeast-2.amazonaws.com
@@ -73,6 +83,7 @@ docker push ${AWS_PROVIDER_URL}/gpl-nf:${VERSION}
 ```
 
 ### Build Lambda layers
+
 ```bash
 for dir in $(find $(pwd -P)/lambdas/layers/ -maxdepth 1 -mindepth 1 -type d); do
   rm -r ${dir}/build/;
@@ -83,13 +94,17 @@ done
 ```
 
 ### Deploy stack
+
 Set appropriate environment with `-c environment=<dev|prod>`
+
 ```bash
 cdk deploy -c environment=dev
 ```
 
 ## Usage
+
 ### Automatic submission with identifiers
+
 A GPL job can be launched with either a subject identifier (e.g. `SBJ00001`) or both a tumor sample identifier and
 normal sample identifier (e.g. `PRJ000001`) using the `gpl_submit_job` Lambda function. This Lambda function queries the
 [data portal API](https://github.com/umccr/data-portal-apis) to automatically collect the necessary input data, which is
@@ -116,6 +131,7 @@ aws lambda invoke \
 ```
 
 #### Lambda arguments
+
 | Argument              | Description               |
 | ---                   | ---                       |
 | `subject_id`          | Subject identifier        |
@@ -125,6 +141,7 @@ aws lambda invoke \
 > identifiers are mutually exclusive.
 
 ### Manual submission with filepaths
+
 For cases where additional control is needed over the inputs and configuration, a manual job submission Lambda function
 is available. This is useful for running samples that are not in the data portal or adjusting Nextflow pipeline
 parameters.
@@ -144,10 +161,12 @@ aws lambda invoke \
     }' \
   response.json
 ```
+
 > The `output_dir` must target the output S3 bucket defined in `cdk.json` and contain the prefix
 > `/gridss_purple_linx/`
 
 #### Lambda arguments
+
 | Argument              | Description                                                                                                   |
 | ---                   | ---                                                                                                           |
 | `job_name`            | Name for Batch job. Must be ≤128 characters and match this regex `^\w[\w_-]*$`.                               |
@@ -165,6 +184,7 @@ aws lambda invoke \
 | `instance_vcpus`      | Instance vCPUs to provision. *Currently only accepting 8 vCPUs per job to avoid exceeding storage limits*.    |
 
 ### Manually generating LINX plots
+
 Genes of interest are not always rendered in the default LINX plots. To force the inclusion of a gene, LINX plots can be
 manually regenerated using the provided Lambda function. You must specify either a chromosome or cluster identifier
 along with the appropriate gene symbol. Only genes present in the Ensembel data cache can be rendered.
@@ -186,6 +206,7 @@ The manually created LINX plots with be placed alongside the default LINX output
 `./linx/plots_manual/`.
 
 #### Lambda arguments
+
 | Argument          | Description                                                                               |
 | ---               | ---                                                                                       |
 | `sample_id`       | Name of sample. *Must* match LINX output file prefix.                                     |

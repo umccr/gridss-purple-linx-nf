@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 import json
 import logging
-import os
 import re
-import sys
 
 
 import botocore
@@ -38,13 +36,33 @@ ERC_IMAGE_NAME = f'843407916570.dkr.ecr.ap-southeast-2.amazonaws.com/{ERC_REPO_N
 
 
 def main(event, context):
+    """Lambda entry point.
+
+    Payload example:
+    ```json
+    {
+        "job_name": "gpl_<proj-owner>-<proj-name>_<subject-id>",
+        "tumor_name": "<subject-id>_<tumor-sample-id>_<tumor-sample-lane>",
+        "normal_name": "<subject-id>_<normal-sample-id>_<normal-sample-lane>",
+        "tumor_bam": "<tumor-bam-s3-path>".
+        "normal_bam": "<normal-bam-s3-path>",
+        "tumor_smlv_vcf": "<tumor-smlv-vcf-s3-path>",
+        "tumor_sv_vcf": "<tumor-sv-vcf-s3-path>",
+        "output_dir": "<output-directory-s3-path>"
+    }
+    ```
+
+    :params dict event: Event payload
+    :params LambdaContext context: Lambda context
+    :returns: None
+    :rtype: None
+    """
     # Log invocation data
     LOGGER.info(f'event: {json.dumps(event)}')
     LOGGER.info(f'context: {json.dumps(util.get_context_info(context))}')
 
     # Check inputs
-    if response_error := validate_event_data(event):
-        return response_error
+    validate_event_data(event)
 
     # Construct command
     tumor_smlv_vcf_fp_arg = get_argument_string('tumor_smlv_vcf_fp', 'tumor_smlv_vcf', event)
@@ -90,7 +108,7 @@ def main(event, context):
                 {'type': 'MEMORY', 'value': str(instance_memory)},
                 {'type': 'VCPU', 'value': str(instance_vcpus)},
             ],
-        }
+        },
     )
     if not (job_id := response_job.get('jobId')):
         msg = f'could not get jobId from Batch job submission response: {response_job}'
@@ -98,13 +116,18 @@ def main(event, context):
     # Deregister job definition if created by Lambda
     if job_definition_arn != JOB_DEFINITION_ARN:
         CLIENT_BATCH.deregister_job_definition(jobDefinition=job_definition_arn)
-    return {
-        'statusCode': 200,
-        'body': f'submitted job id: {job_id}'
-    }
+    return {'statusCode': 200, 'body': f'submitted job id: {job_id}'}
 
 
 def validate_event_data(event):
+    """Validate arguments specified in Lambda event payload.
+
+    :params dict event: Event payload
+    :returns: None
+    :rtype: None
+    """
+    # pylint: disable=consider-using-dict-items,too-many-return-statements,too-many-branches,too-many-statements
+    # fmt: off
     arguments = {
         'job_name':                 {'required': False},
         'tumor_name':               {'required': True},
@@ -120,6 +143,7 @@ def validate_event_data(event):
         'instance_memory':          {'required': False, 'type_int': True, 'default': 30},
         'instance_vcpus':           {'required': False, 'type_int': True, 'default': 8},
     }
+    # fmt: on
 
     # NOTE(SW): requiring that all jobs have exactly 8 vCPUs to optimise instance provisioning and
     # to avoid exceed storage limits.
@@ -265,6 +289,12 @@ def validate_event_data(event):
 
 
 def match_s3_path(s3_path):
+    """Parse components of S3 path.
+
+    :param str s3_path: S3 path
+    :returns: Regex match object containing parsed paths
+    :rtype: re.Match
+    """
     s3_path_re_str = r'''
         # Leading URI scheme name
         ^s3://
@@ -281,6 +311,14 @@ def match_s3_path(s3_path):
 
 
 def check_s3_file_exists(bucket, key, error_store):
+    """Determine if an S3 path exists.
+
+    :param str bucket: S3 bucket
+    :param str key: S3 key
+    :param list error_store: List of errors to report
+    :returns: None
+    :rtype: None
+    """
     s3_object = RESOURCE_S3.Object(bucket, key)
     try:
         s3_object.load()
@@ -290,6 +328,13 @@ def check_s3_file_exists(bucket, key, error_store):
 
 
 def get_job_definition_arn(docker_image_tag):
+    """Construct job definition ARN.
+
+    :param str docker_image_tag: Docker image tag
+    :returns: Job definition ARN
+    :rtype: str
+    """
+    # pylint: disable=no-else-return
     docker_image = f'{ERC_IMAGE_NAME}:{docker_image_tag}'
     if job_definition_arn := find_existing_job_definition(docker_image):
         return job_definition_arn
@@ -298,6 +343,12 @@ def get_job_definition_arn(docker_image_tag):
 
 
 def find_existing_job_definition(docker_image):
+    """Obtain an existing job definition.
+
+    :param str docker_image: Docker image name
+    :returns: Job definition ARN
+    :rtype: str
+    """
     # NOTE(SW): this should only ever find the revision created by CDK (unless others were not
     # correctly cleaned up)
     resp_job_defs = CLIENT_BATCH.describe_job_definitions(jobDefinitionName=JOB_DEFINITION_NAME)
@@ -314,10 +365,17 @@ def find_existing_job_definition(docker_image):
 
 
 def create_new_job_definition(docker_image_tag, docker_image):
+    """Create a new job definition.
+
+    :param str docker_image_tag: Docker image tag
+    :param str docker_image: Docker image name
+    :returns: Job definition ARN
+    :rtype: str
+    """
     resp_erc_images = CLIENT_ERC.list_images(repositoryName=ERC_REPO_NAME)
     image_tags = {d.get('imageTag') for d in resp_erc_images.get('imageIds')}
     if not image_tags:
-        msg = f'did not find any Docker image tags in \'{repo_name}\' repo'
+        msg = f'did not find any Docker image tags in \'{ERC_REPO_NAME}\' repo'
         return log_error_and_get_response(msg)
     if docker_image_tag not in image_tags:
         tags_str = '\n\t'.join(image_tags)
@@ -331,24 +389,33 @@ def create_new_job_definition(docker_image_tag, docker_image):
             'command': ['true'],
             'memory': 1000,
             'vcpus': 1,
-        }
+        },
     )
     return resp_job_def['jobDefinitionArn']
 
 
 def log_error_and_get_response(error_msg, level='critical'):
+    """Log and error and return response.
+
+    :param str error_msg: Error message
+    :param str level: Level at which to log message
+    :returns: Lambda return response
+    :rtype: dict
+    """
     level_number = logging.getLevelName(level.upper())
     LOGGER.log(level_number, error_msg)
-    return {
-        'statusCode': 400,
-        'body': error_msg
-    }
+    return {'statusCode': 400, 'body': error_msg}
 
 
 def get_argument_string(arg_name, key, event):
+    """Construct an argument string.
+
+    :param str arg_name: Name of argument
+    :param str key: Key for the argument
+    :param dict event: Lambda event payload
+    :returns: Constructed argument string
+    :rtype: str
+    """
+    # pylint: disable=inconsistent-return-statements
     value = event.get(key)
     return f'--{arg_name} {value}' if value else ''
-
-
-if __name__ == '__main__':
-    main()

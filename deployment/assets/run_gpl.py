@@ -11,7 +11,6 @@ import textwrap
 
 
 import boto3
-import botocore
 
 
 # Local input
@@ -32,6 +31,14 @@ LOGGER.setLevel(logging.DEBUG)
 
 # Repeated
 def get_client(service_name, region_name=None):
+    """Get boto3 client instance.
+
+    :param str name: Client type
+    :param str region_name: Name of region for service
+    :returns: boto3 client
+    :rtype: boto3.client.*
+    """
+    # pylint: disable=broad-except
     try:
         response = boto3.client(service_name, region_name=region_name)
     except Exception as err:
@@ -42,6 +49,12 @@ def get_client(service_name, region_name=None):
 
 # Repeated
 def match_s3_path(s3_path):
+    """Parse components of S3 path.
+
+    :param str s3_path: S3 path
+    :returns: Regex match object containing parsed paths
+    :rtype: re.Match
+    """
     s3_path_re_str = r'''
         # Leading URI scheme name
         ^s3://
@@ -61,35 +74,35 @@ CLIENT_S3 = get_client('s3')
 
 
 def get_arguments():
+    """Parse and processes command line arguments.
+
+    :returns: Namespace populated with fully processed arguments
+    :rtype: argparse.Namespace
+    """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--tumor_name', required=True,
-            help='Tumor name as if appears in VCFs')
-    parser.add_argument('--normal_name', required=True,
-            help='Normal name as if appears in VCFs')
-    parser.add_argument('--tumor_bam_fp', required=True,
-            help='Tumor BAM S3 path')
-    parser.add_argument('--normal_bam_fp', required=True,
-            help='Normal BAM S3 path')
-    parser.add_argument('--tumor_smlv_vcf_fp', required=False,
-            help='Tumor small variant VCF S3 path')
-    parser.add_argument('--tumor_sv_vcf_fp', required=False,
-            help='Tumor structural variant VCF S3 path (generally Manta calls)')
-    parser.add_argument('--reference_data', required=True,
-            help='Reference data directory S3 path')
-    parser.add_argument('--output_dir', required=True,
-            help='Output S3 path')
-    parser.add_argument('--upload_nf_cache', required=False, action='store_true',
-            help='Output S3 path')
-    parser.add_argument('--cpu_count', type=int, required=True,
-            help='Number of CPUs to use')
-    parser.add_argument('--nextflow_args_str', required=False, default='',
-            help='Additional Nextflow arguments as a quoted string')
+    parser.add_argument('--tumor_name', required=True, help='Tumor name as if appears in VCFs')
+    parser.add_argument('--normal_name', required=True, help='Normal name as if appears in VCFs')
+    parser.add_argument('--tumor_bam_fp', required=True, help='Tumor BAM S3 path')
+    parser.add_argument('--normal_bam_fp', required=True, help='Normal BAM S3 path')
+    parser.add_argument('--tumor_smlv_vcf_fp', required=False, help='Tumor small variant VCF S3 path')
+    parser.add_argument(
+        '--tumor_sv_vcf_fp', required=False, help='Tumor structural variant VCF S3 path (generally Manta calls)'
+    )
+    parser.add_argument('--reference_data', required=True, help='Reference data directory S3 path')
+    parser.add_argument('--output_dir', required=True, help='Output S3 path')
+    parser.add_argument('--upload_nf_cache', required=False, action='store_true', help='Output S3 path')
+    parser.add_argument('--cpu_count', type=int, required=True, help='Number of CPUs to use')
+    parser.add_argument(
+        '--nextflow_args_str', required=False, default='', help='Additional Nextflow arguments as a quoted string'
+    )
     args = parser.parse_args()
     args.output_dir = args.output_dir if args.output_dir.endswith('/') else f'{args.output_dir}/'
     return args
 
 
 def main():
+    """Script entry point."""
+    # pylint: disable=consider-using-with
     # Create logging streams and get command line arguments
     create_log_streams()
     args = get_arguments()
@@ -115,10 +128,7 @@ def main():
     # This is decoupled from Nextflow to ease debugging and transparency for errors related to this
     # operation.
     sample_data_local_paths = pull_sample_data(
-        args.tumor_bam_fp,
-        args.normal_bam_fp,
-        args.tumor_smlv_vcf_fp,
-        args.tumor_sv_vcf_fp
+        args.tumor_bam_fp, args.normal_bam_fp, args.tumor_smlv_vcf_fp, args.tumor_sv_vcf_fp
     )
     execute_command(f'aws s3 sync {args.reference_data} {REFERENCE_LOCAL_DIR}')
 
@@ -153,12 +163,7 @@ def main():
     command = re.sub(r'[ \n]+', ' ', command_long).strip()
     LOGGER.debug(f'executing: {command}')
     process = subprocess.Popen(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        shell=True,
-        bufsize=1,
-        encoding='utf-8'
+        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, bufsize=1, encoding='utf-8'
     )
     # Stream stdout and stderr
     for line in process.stdout:
@@ -174,6 +179,7 @@ def main():
 
 
 def create_log_streams():
+    """Add file and stream handlers to logger."""
     log_filepath = OUTPUT_LOCAL_DIR / 'pipeline_log.txt'
     if not log_filepath.parent.exists():
         log_filepath.parent.mkdir(0o755, parents=True, exist_ok=True)
@@ -188,6 +194,12 @@ def create_log_streams():
 
 
 def get_vcf_header(vcf_s3_path):
+    """Stream in a VCF header from S3.
+
+    :param str vcf_s3_path: VCF S3 filepath
+    :returns: VCF header
+    :rtype: list
+    """
     # Get a file stream and chunk iterator for the VCF
     s3_path_components = match_s3_path(vcf_s3_path)
     response = CLIENT_S3.get_object(
@@ -216,12 +228,18 @@ def get_vcf_header(vcf_s3_path):
                 LOGGER.critical(f'Moved past header in {vcf_s3_path} without finding header line')
                 sys.exit(1)
             elif line.startswith('#CHROM'):
-                header = data_lines[:i+1]
+                header = data_lines[: i + 1]
                 break
     return header
 
 
 def decompress_gzip_chunks(data):
+    """Decompress a gzip'ed string.
+
+    :param str data: Gzip compressed string
+    :returns: Decompressed lines
+    :rtype: list
+    """
     with gzip.GzipFile(fileobj=io.BytesIO(data), mode='r') as fh:
         try:
             lines = list()
@@ -233,6 +251,14 @@ def decompress_gzip_chunks(data):
 
 
 def check_vcf_sample_names(sample_names_input, vcf_fp, vcf_header):
+    """Match input sample names to those present in the VCF header.
+
+    :param list sample_names_input: Input sample names
+    :param str vcf_fp: VCF S3 filepath
+    :param list vcf_header: VCF header
+    :returns: None
+    :rtype: None
+    """
     # Get and the match sample names
     sample_names_vcf = get_samples_from_vcf_header(vcf_header)
     sample_name_missing = list()
@@ -276,6 +302,12 @@ def check_vcf_sample_names(sample_names_input, vcf_fp, vcf_header):
 
 
 def get_samples_from_vcf_header(vcf_header):
+    """Obtain sample names from a VCF header
+
+    :param list vcf_header: VCF header
+    :returns: Sample names
+    :rtype: list
+    """
     header_line = vcf_header[-1]
     header_tokens = header_line.rstrip().split('\t')
     sample_list = header_tokens[9:]
@@ -283,6 +315,13 @@ def get_samples_from_vcf_header(vcf_header):
 
 
 def check_vcf_ad_field(vcf_fp, vcf_header):
+    """Determine whether the VCF has the FORMAT/AD field defined.
+
+    :param str vcf_fp: VCF S3 filepath
+    :param list vcf_header: VCF header
+    :returns: None
+    :rtype: None
+    """
     for line in vcf_header:
         if not line.startswith('##FORMAT=<ID=AD,'):
             continue
@@ -294,6 +333,15 @@ def check_vcf_ad_field(vcf_fp, vcf_header):
 
 
 def pull_sample_data(tumor_bam_fp, normal_bam_fp, tumor_smlv_vcf_fp, tumor_sv_vcf_fp):
+    """Download sample data to local machine.
+
+    :param str tumor_bam_fp: Tumor BAM S3 filepath
+    :param str normal_bam_fp: Normal BAM S3 filepath
+    :param str tumor_smlv_vcf_fp: Tumor small variant VCF S3 filepath
+    :param str tumor_sv_vcf_fp: Tumor SV VCF S3 filepath
+    :returns: Mapping of file identifier to local filepaths
+    :rtype: dict
+    """
     # Set files to pull; add BAM indexes (required for AMBER, COBALT, GRIDSS read extraction)
     s3_paths = {
         'tumor_bam_fp': tumor_bam_fp,
@@ -316,14 +364,16 @@ def pull_sample_data(tumor_bam_fp, normal_bam_fp, tumor_smlv_vcf_fp, tumor_sv_vc
 
 
 def execute_command(command, ignore_errors=False):
+    """Executes commands using subprocess and checks return code.
+
+    :param str command: Command to execute
+    :param bool ignore_errors: Ignore any encountered errors
+    :returns: Data of executed command, including standard streams
+    :rtype: subprocess.CompletedProcess
+    """
+    # pylint: disable=subprocess-run-check
     LOGGER.debug(f'executing: {command}')
-    result = subprocess.run(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=True,
-        encoding='utf-8'
-    )
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, encoding='utf-8')
     if result.returncode != 0:
         if ignore_errors:
             LOGGER.warning(f'Ignoring non-zero return code for command: {result.args}')
@@ -338,6 +388,12 @@ def execute_command(command, ignore_errors=False):
 
 
 def get_config(config_settings):
+    """Construct configuration for Nextflow.
+
+    :param dict config_settings: Nextflow configuration settings
+    :returns: Nextflow configuration
+    :rtype: str
+    """
     config_params = get_config_params(config_settings)
     config_misc = get_config_misc()
     config_lines = [
@@ -350,6 +406,12 @@ def get_config(config_settings):
 
 
 def get_config_params(config_settings):
+    """Define general Nextflow configuration parameters.
+
+    :param dict config_settings: Nextflow configuration settings
+    :returns: General configuration params
+    :rtype: str
+    """
     sample_data_local_paths = config_settings['sample_data_local_paths']
     io_lines = [
         f'tumor_name = \'{config_settings["tumor_name"]}\'',
@@ -361,7 +423,7 @@ def get_config_params(config_settings):
         f'tumor_smlv_vcf = \'{sample_data_local_paths.get("tumor_smlv_vcf_fp", "NOFILE")}\'',
         f'tumor_sv_vcf = \'{sample_data_local_paths.get("tumor_sv_vcf_fp", "NOFILE")}\'',
         f'output_dir = \'{OUTPUT_LOCAL_DIR}\'',
-        f'publish_mode = \'symlink\'',
+        'publish_mode = \'symlink\'',
     ]
 
     reference_lines = [
@@ -406,7 +468,14 @@ def get_config_params(config_settings):
 
 
 def get_config_misc():
-    return textwrap.dedent(f'''
+    """Define miscellaneous Nextflow configuration parameters.
+
+    :param dict config_settings: Nextflow configuration settings
+    :returns: Miscellaneous configuration params
+    :rtype: str
+    """
+    return textwrap.dedent(
+        f'''
         process.cpus = params.cpus
         process.cache = 'lenient'
 
@@ -436,10 +505,19 @@ def get_config_misc():
           enabled = true
           file = '{NEXTFLOW_DIR}/reports/trace.txt'
         }}
-    ''')
+    '''
+    )
 
 
 def upload_data_outputs(output_dir, upload_nf_cache):
+    """Upload run outputs to S3.
+
+    :param str output_dir: Upload S3 filepath
+    :param bool upload_nf_cache: Flag used to enable upload of the Nextflow work cache
+    :returns: None
+    :rtype: None
+    """
+    # pylint: disable=too-many-branches
     # Upload main outputs
     LOGGER.info('uploading main outputs')
     commands_failed = list()

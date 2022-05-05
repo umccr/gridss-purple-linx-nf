@@ -29,9 +29,9 @@ aws_env = aws_cdk.Environment(
 
 # Configure for deploy context
 app = aws_cdk.App()
-if (deploy_context_key := app.node.try_get_context('environment')) == None:
+if (deploy_context_key := app.node.try_get_context('environment')) is None:
     raise ValueError('require deployment context as \'-c environment=<key>\' where <key> is define in cdk.json')
-if (deploy_context := app.node.try_get_context(deploy_context_key)) == None:
+if (deploy_context := app.node.try_get_context(deploy_context_key)) is None:
     raise ValueError(f'no deploy context available for {deploy_context_key}')
 stack_props.update(deploy_context)
 

@@ -4,6 +4,7 @@ import datetime
 import glob
 import json
 import logging
+import re
 import shutil
 import subprocess
 
@@ -19,6 +20,25 @@ REFERENCE_DATA = util.get_environment_variable('REFERENCE_DATA')
 
 
 def main(event, context):
+    """Lambda entry point.
+
+    Payload example:
+    ```json
+    {
+        "sample_id": "SBJ01673_PRJ220789_L2200334",
+        "cluster_ids": "44,32",
+        "regions": "chr8:127000000:127800000;chr11:122000000:125000000",
+        "chromosomes": "chr9,chr4",
+        "gene_ids": "NTRK2,LINC02377",
+        "gpl_directory": "<proj-owner>-<proj-name>/<subject_id>/WGS/<YYYY-MM-DD>/gridss_purple_linx/"
+    }
+    ```
+
+    :params dict event: Event payload
+    :params LambdaContext context: Lambda context
+    :returns: None
+    :rtype: None
+    """
     # Log invocation data
     LOGGER.info(f'event: {json.dumps(event)}')
     LOGGER.info(f'context: {json.dumps(util.get_context_info(context))}')
@@ -34,7 +54,7 @@ def main(event, context):
     # Grab some information about requested plot for selected genes
     if 'gene_ids' in event:
         gene_data = get_gene_data(f'{ensembl_data_cache_dir}ensembl_gene_data.csv')
-        check_gene_symbol(cluster_genes, gene_data, event)
+        check_gene_symbol(gene_data, event)
 
     # Generate LINX plot
     plot_dir = generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event)
@@ -46,6 +66,13 @@ def main(event, context):
 
 
 def check_gene_symbol(gene_data, event):
+    """Ensures that the gene symbols are available in the Ensembl data cache.
+
+    :params dict gene_data: Input gene data
+    :params dict event: Event payload
+    :returns: None
+    :rtype: None
+    """
     genes = event['gene_ids'].split(';')
     genes_missing = list()
     for gene in genes:
@@ -60,6 +87,13 @@ def check_gene_symbol(gene_data, event):
 
 
 def validate_event_data(event):
+    """Validates arguments specified in Lambda event payload.
+
+    :params dict event: Event payload
+    :returns: None
+    :rtype: None
+    """
+    # pylint: disable=too-many-branches
     args_known = [
         'sample_id',
         'cluster_ids',
@@ -68,6 +102,7 @@ def validate_event_data(event):
         'gene_ids',
         'gpl_directory',
     ]
+    # Refuse to run with unknown arguments
     args_unknown = [arg for arg in event if arg not in args_known]
     if args_unknown:
         plurality = 'arguments' if len(args_unknown) > 1 else 'argument'
@@ -75,11 +110,13 @@ def validate_event_data(event):
         msg = f'got {len(args_unknown)} unknown arguments:\n\t{args_unknown_str}'
         raise ValueError(msg)
 
+    # Check required arguments are present
     if not event.get('sample_id'):
         raise ValueError('The required argument sample_id is missing')
     if not event.get('gpl_directory'):
         raise ValueError('The required argument gpl_directory is missing')
 
+    # Basic argument rules
     has_cluster_ids = 'cluster_ids' in event
     has_chromosomes = 'chromosomes' in event
     has_gene_ids = 'gene_ids' in event
@@ -104,7 +141,7 @@ def validate_event_data(event):
         for region in event['regions'].split(';'):
             if not (re_result := region_regex.match(region)):
                 raise ValueError(f'could not apply regex \'{region_regex}\' to \'{region}\'')
-            chrms_region.append(re_result.group(1))
+            chrms_region.add(re_result.group(1))
         # Ensure that provided contigs/chromosomes are in the expected format
         chrm_invalid = validate_chromosomes(chrms_region)
         if chrm_invalid:
@@ -124,19 +161,31 @@ def validate_event_data(event):
 
 
 def validate_chromosomes(chromosomes):
+    """Check that chromosomes are provided in the expected format.
+
+    :params list event: Provided chromosomes
+    :returns: Invalid chromosomes
+    :rtype: list
+    """
     chrm_valid = {
         *{f'chr{i}' for i in range(1, 23)},
         'chrX',
         'chrY',
     }
     chrm_invalid = list()
-    for chrm in event['chromosomes'].split(','):
+    for chrm in chromosomes.split(','):
         if chrm not in chrm_valid:
             chrm_invalid.append(chrm)
     return chrm_invalid
 
 
 def download_linx_annotation_data(gpl_directory):
+    """Download LINX annotation data.
+
+    :params str gpl_directory: Directory path to GPL output
+    :returns: Local path of downloaded data
+    :rtype: str
+    """
     s3_path = f's3://{OUTPUT_BUCKET}/{gpl_directory}/linx/annotations/'
     local_path = '/tmp/linx_annotations/'
     execute_command(f'aws s3 sync {s3_path} {local_path}/')
@@ -144,6 +193,11 @@ def download_linx_annotation_data(gpl_directory):
 
 
 def download_ensembl_data_cache():
+    """Download HMF Ensembl data cache from reference store.
+
+    :returns: Local path of downloaded data
+    :rtype: str
+    """
     s3_path = f'{REFERENCE_DATA}Ensembl-Data-Cache/38/'
     local_path = '/tmp/ensembl-data-cache/'
     execute_command(f'aws s3 sync {s3_path} {local_path}')
@@ -151,6 +205,13 @@ def download_ensembl_data_cache():
 
 
 def get_gene_data(fp):
+    """Read gene data from Ensembl data cache into memory.
+
+    :param str fp: Local path to gene data file
+    :returns: Gene data
+    :rtype: dict
+    """
+    # pylint: disable=unspecified-encoding
     gene_data = dict()
     with open(fp, 'r') as fh:
         line_token_gen = (line.rstrip().split(',') for line in fh)
@@ -164,6 +225,14 @@ def get_gene_data(fp):
 
 
 def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event):
+    """Construct arguments for LINX visualiser and run.
+
+    :param str linx_annotations_dir: Local path to LINX annotations
+    :param str ensembl_data_cache_dir: Local path to HMF Ensembl data cache
+    :param dict event: Lambda event payload
+    :returns: Local path to output plot directory generated by LINX visualiser
+    :rtype: str
+    """
     # Configurate options
     plot_options_list = list()
     if 'chromosomes' in event:
@@ -172,7 +241,7 @@ def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event):
         plot_options_list.append(f'-clusterId {event["cluster_ids"]}')
     if 'gene_ids' in event:
         plot_options_list.append(f'-gene \"{event["gene_ids"]}\"')
-        plot_options_list.append(f'-restrict_cluster_by_gene')
+        plot_options_list.append('-restrict_cluster_by_gene')
     if 'regions' in event:
         plot_options_list.append(f'-specific_regions \"{event["regions"]}\"')
     plot_options = ' '.join(plot_options_list)
@@ -181,7 +250,7 @@ def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event):
     output_plot_dir = f'{output_base_dir}plot/'
     output_data_dir = f'{output_base_dir}data/'
     # Construct full command
-    command = (f'''
+    command = f'''
       java \
         -cp /opt/hmftools/linx.jar \
         com.hartwig.hmftools.linx.visualiser.SvVisualiser \
@@ -193,7 +262,7 @@ def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event):
           -circos circos \
           -ref_genome_version 38 \
           {plot_options}
-    ''')
+    '''
     execute_command(command)
     # Rename plots to include datetime stamp
     dts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -204,14 +273,15 @@ def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event):
 
 
 def execute_command(command):
+    """Executes commands using subprocess and checks return code.
+
+    :param str command: Command to execute
+    :returns: Data of executed command, including standard streams
+    :rtype: subprocess.CompletedProcess
+    """
+    # pylint: disable=subprocess-run-check
     LOGGER.debug(f'executing: {command}')
-    result = subprocess.run(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=True,
-        encoding='utf-8'
-    )
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, encoding='utf-8')
     if result.returncode != 0:
         msg_hline = f'Non-zero return code for command: {result.args}'
         LOGGER.critical(msg_hline)

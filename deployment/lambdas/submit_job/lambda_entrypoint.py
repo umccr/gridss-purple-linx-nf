@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import json
 import logging
-import os
 import re
 import urllib.parse
 
@@ -24,13 +23,28 @@ OUTPUT_BUCKET = util.get_environment_variable('OUTPUT_BUCKET')
 
 
 def main(event, context):
+    """Lambda entry point.
+
+    Payload example:
+    ```json
+    {
+        "subject_id": "SBJ01673_PRJ220789_L2200334",
+        "tumor_sample_id": "PRJ000001",
+        "normal_sample_id": "PRJ000002",
+    }
+    ```
+
+    :params dict event: Event payload
+    :params LambdaContext context: Lambda context
+    :returns: None
+    :rtype: None
+    """
     # Log invocation data
     LOGGER.info(f'event: {json.dumps(event)}')
     LOGGER.info(f'context: {json.dumps(util.get_context_info(context))}')
 
     # Check inputs and ensure that output directory is writable
-    if response_error := validate_event_data(event):
-        return response_error
+    validate_event_data(event)
 
     # Obtain IAM auth for API Gateway, required to sign HTTP API requests
     api_auth = aws_requests_auth.boto_utils.BotoAWSRequestsAuth(
@@ -40,12 +54,9 @@ def main(event, context):
     )
 
     # Get sample information
-    if (subject_id := event.get('subject_id')):
+    if subject_id := event.get('subject_id'):
         subject_md_all = get_subject_metadata(subject_id, api_auth)
-        tumor_sample_md, normal_sample_md = get_samples_from_subject_metadata(
-            subject_md_all,
-            subject_id
-        )
+        tumor_sample_md, normal_sample_md = get_samples_from_subject_metadata(subject_md_all, subject_id)
     else:
         tumor_sample_md = get_sample_metadata(event['tumor_sample_id'], api_auth)
         normal_sample_md = get_sample_metadata(event['normal_sample_id'], api_auth)
@@ -76,6 +87,13 @@ def main(event, context):
 
 
 def validate_event_data(event):
+    """Validate arguments specified in Lambda event payload.
+
+    :params dict event: Event payload
+    :returns: None
+    :rtype: None
+    """
+    # pylint: disable=superfluous-parens
     args_known = [
         'subject_id',
         'tumor_sample_id',
@@ -85,7 +103,7 @@ def validate_event_data(event):
     if args_unknown:
         plurality = 'arguments' if len(args_unknown) > 1 else 'argument'
         args_unknown_str = '\r\t'.join(args_unknown)
-        msg = f'got {len(args_unknown)} unknown arguments:\r\t{args_unknown_str}'
+        msg = f'got {len(args_unknown)} unknown {plurality}:\r\t{args_unknown_str}'
         LOGGER.critical(msg)
         raise ValueError(msg)
     sample_id_provided = ('tumor_sampe_id' in event) or ('normal_sample_id' in event)
@@ -97,6 +115,14 @@ def validate_event_data(event):
 
 
 def get_file_path(pattern, file_list):
+    """Find the filepath that matches a regex in a give list of filepaths.
+
+    :params str pattern: Regular expression pattern
+    :params list file_list: List of filepaths
+    :returns: Filepath matching regex
+    :rtype: str
+    """
+    # pylint: disable=unbalanced-tuple-unpacking
     LOGGER.info(f'getting file path with pattern {pattern}')
     regex = re.compile(pattern)
     files_matched = list()
@@ -107,7 +133,7 @@ def get_file_path(pattern, file_list):
         msg = f'found more than one entry for {pattern}'
         LOGGER.critical(msg)
         raise ValueError(msg)
-    elif len(files_matched) == 0:
+    if len(files_matched) == 0:
         msg = f'no entries found for {pattern}'
         LOGGER.critical(msg)
         raise ValueError(msg)
@@ -117,6 +143,13 @@ def get_file_path(pattern, file_list):
 
 
 def get_sample_metadata(sample_id, api_auth):
+    """Obtain sample metadata from the data portal API.
+
+    :params str sample_id: Sample identifier
+    :params aws_requests_auth.boto_utils.BotoAWSRequestsAuth api_auth: API auth object
+    :returns: Sample metadata entry
+    :rtype: dict
+    """
     LOGGER.info(f'getting sample metadata for {sample_id}')
     md_entries = make_api_get_call(f'metadata?sample_id={sample_id}', api_auth)
     if len(md_entries) != 1:
@@ -127,35 +160,56 @@ def get_sample_metadata(sample_id, api_auth):
 
 
 def get_subject_metadata(subject_id, api_auth):
+    """Obtain subject metadata from the data portal API.
+
+    :params str subject_id: Subject identifier
+    :params aws_requests_auth.boto_utils.BotoAWSRequestsAuth api_auth: API auth object
+    :returns: Subject metadata entries
+    :rtype: list
+    """
     LOGGER.info(f'getting subject metadata for {subject_id}')
     return make_api_get_call(f'metadata?subject_id={subject_id}', api_auth)
 
 
 def make_api_get_call(endpoint, auth):
+    """Make a GET call to the data portal API.
+
+    :params str endpoint: API endpoint
+    :params aws_requests_auth.boto_utils.BotoAWSRequestsAuth api_auth: API auth object
+    :returns: Resulting records
+    :rtype: list
+    """
     url = f'{PORTAL_API_BASE_URL}/iam/{endpoint}'
     LOGGER.debug(f'GET request to {url}')
-    req_md_raw = requests.get(url, auth=auth)
-    req_md = req_md_raw.json()
-    LOGGER.debug(f'recieved {req_md} from {url}')
+    req_raw = requests.get(url, auth=auth)
+    req = req_raw.json()
+    LOGGER.debug(f'recieved {req} from {url}')
     # Check we have results
-    if not (md_entries := req_md.get('results')):
+    if not (entries := req.get('results')):
         msg = f'no results found for query {url}'
         LOGGER.critical(msg)
         raise ValueError(msg)
     # Ensure we have pagination data but fail if we have multiple pages
     # NOTE(SW): will need an example case to implement logic to handle
-    if not (pg_data := req_md.get('pagination')):
-        msg = f'no pagination data recieved for {subject_id} metadata query'
+    if not (pg_data := req.get('pagination')):
+        msg = f'no pagination data recieved {url} query'
         LOGGER.critical(msg)
         raise ValueError(msg)
     if pg_data['count'] > pg_data['rowsPerPage']:
-        msg = f'recieved multiple pages for {subject_id} metadata query, refusing to handle'
+        msg = f'recieved multiple pages for {url} query, refusing to handle'
         LOGGER.critical(msg)
         raise ValueError(msg)
-    return md_entries
+    return entries
 
 
 def get_samples_from_subject_metadata(subject_md_all, subject_id):
+    """Collect tumor and normal samples from subject metadata entries.
+
+    :params list subject_md_all: Subject metadata entries
+    :params str subject_id: Subject identifier
+    :returns: Tumor and normal sample metadata
+    :rtype: tuple
+    """
     subject_md = dict()
     for entry in subject_md_all:
         if entry['type'] != 'WGS':
@@ -168,7 +222,7 @@ def get_samples_from_subject_metadata(subject_md_all, subject_id):
         msg = (
             f'found {len(subject_md)} WGS sample {plurality} for {subject_id} but can only proceed '
             f'using --subject_id with exactly two. Try again using --tumor_sample_id and '
-            f'--normal_sample_id. Samples found using --subject_id: {", ".join(subject_md)}.'
+            f'--normal_sample_id. Samples found using --subject_id: {", ".join(subject_ids)}.'
         )
         LOGGER.critical(msg)
         raise ValueError(msg)
@@ -178,6 +232,14 @@ def get_samples_from_subject_metadata(subject_md_all, subject_id):
 
 
 def get_sample_from_phenotype(d, phenotype, subject_id):
+    """Get sample of specified phenotype from a subject metadata entry.
+
+    :params dict d: Subject metadata entry
+    :params str phenotype: Sample phenotype
+    :params str subject_id: Subject identifier
+    :returns: Sample metadata entry
+    :rtype: dict
+    """
     samples = list()
     for e in d.values():
         if e['phenotype'] == phenotype:
@@ -186,7 +248,7 @@ def get_sample_from_phenotype(d, phenotype, subject_id):
         msg = f'found multiple {phenotype} samples for {subject_id}'
         LOGGER.critical(msg)
         raise ValueError(msg)
-    elif not samples:
+    if not samples:
         msg = f'no {phenotype} samples found for {subject_id}'
         LOGGER.critical(msg)
         raise ValueError(msg)
@@ -194,10 +256,17 @@ def get_sample_from_phenotype(d, phenotype, subject_id):
 
 
 def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth):
-    # Set identifers
+    """Collect the required data to submit a GPL job.
+
+    :params dict tumor_sample_md: Tumor sample metadata
+    :params dict normal_sample_md: Normal sample metadata
+    :params str subject_id: Subject identifier
+    :params aws_requests_auth.boto_utils.BotoAWSRequestsAuth api_auth: API auth object
+    :returns: Payload for job submission
+    :rtype: dict
+    """
+    # Set identifer
     identifier = f'{tumor_sample_md["project_owner"]}-{tumor_sample_md["project_name"]}_{subject_id}'
-    tumor_name = f'{subject_id}_{tumor_sample_md["sample_id"]}_{tumor_sample_md["library_id"]}'
-    normal_name = f'{subject_id}_{normal_sample_md["sample_id"]}_{normal_sample_md["library_id"]}'
     # Get input file paths
     # NOTE(SW): the `/iam/s3` endpoint does not currently allow certain special characters (e.g.
     # '$' and '+') in the pattern string. So we must retrieve a list of all BAMs and VCFs from the
@@ -250,10 +319,24 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
 
 
 def get_bam_pattern(md):
+    """Construct regex for input BAM filepath.
+
+    :params dict md: Sample metadata
+    :returns: BAM regex
+    :rtype: str
+    """
     return fr'^.+/{md["subject_id"]}_{md["sample_id"]}_{md["library_id"]}-ready.bam$'
 
 
 def get_subject_files(subject_id, pattern, api_auth):
+    """Get a list of files associated with a subject.
+
+    :params str subject_id: Subject identifier
+    :params str pattern: Regular expression
+    :params aws_requests_auth.boto_utils.BotoAWSRequestsAuth api_auth: API auth object
+    :returns: Filepaths associated with the given subject
+    :rtype: list
+    """
     entries_all = make_api_get_call(f's3?subject={subject_id}&search={pattern}&rowsPerPage=1000', api_auth)
     filepaths = list()
     for entry in entries_all:
@@ -262,6 +345,12 @@ def get_subject_files(subject_id, pattern, api_auth):
 
 
 def get_date_dirname(fp):
+    """Determine root path of a so called 'date directory'.
+
+    :params str fp: Filepath containing the data directory
+    :returns: Date directory root path
+    :rtype: str
+    """
     if not (regex_result := re.match('^.+/WGS/([0-9]{4}-[0-9]{2}-[0-9]{2})/final/.+$', fp)):
         msg = f'could not obtain required date directory from the tumor BAM: {fp}'
         LOGGER.critical(msg)

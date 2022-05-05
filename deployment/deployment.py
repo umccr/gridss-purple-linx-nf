@@ -1,3 +1,6 @@
+# pylint: disable=missing-class-docstring
+
+
 from aws_cdk import (
     aws_batch_alpha as batch,
     aws_ec2 as ec2,
@@ -11,6 +14,7 @@ from aws_cdk import (
 
 
 class GplStack(Stack):
+    # pylint: disable=redefined-builtin
 
     def __init__(self, scope, id, props, **kwargs):
         super().__init__(scope, id, **kwargs)
@@ -31,7 +35,7 @@ class GplStack(Stack):
                 iam.ManagedPolicy.from_aws_managed_policy_name('AmazonS3ReadOnlyAccess'),
                 iam.ManagedPolicy.from_aws_managed_policy_name('AmazonSSMManagedInstanceCore'),
                 iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AmazonEC2ContainerServiceforEC2Role'),
-            ]
+            ],
         )
 
         batch_instance_profile = iam.CfnInstanceProfile(
@@ -47,7 +51,7 @@ class GplStack(Stack):
             assumed_by=iam.ServicePrincipal('spotfleet.amazonaws.com'),
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AmazonEC2SpotFleetTaggingRole'),
-            ]
+            ],
         )
 
         batch_security_group = ec2.SecurityGroup.from_lookup_by_name(
@@ -60,11 +64,7 @@ class GplStack(Stack):
         block_device_mappings = [
             ec2.CfnLaunchTemplate.BlockDeviceMappingProperty(
                 device_name='/dev/xvda',
-                ebs=ec2.CfnLaunchTemplate.EbsProperty(
-                    encrypted=True,
-                    volume_size=500,
-                    volume_type='gp2'
-                )
+                ebs=ec2.CfnLaunchTemplate.EbsProperty(encrypted=True, volume_size=500, volume_type='gp2'),
             ),
         ]
         batch_launch_template = ec2.CfnLaunchTemplate(
@@ -112,7 +112,7 @@ class GplStack(Stack):
                     'Creator': props['batch_resource_tags']['Creator'],
                     'Owner': props['batch_resource_tags']['Owner'],
                 },
-            )
+            ),
         )
 
         batch_job_queue = batch.JobQueue(
@@ -120,11 +120,8 @@ class GplStack(Stack):
             'BatchJobQueue',
             job_queue_name=props['batch_queue_name'],
             compute_environments=[
-                batch.JobQueueComputeEnvironment(
-                    compute_environment=batch_compute_environment,
-                    order=1
-                )
-            ]
+                batch.JobQueueComputeEnvironment(compute_environment=batch_compute_environment, order=1)
+            ],
         )
 
         # NOTE(SW): we specify container overrides for job definition when submitting each Batch job
@@ -144,19 +141,17 @@ class GplStack(Stack):
         runtime_layer = lmbda.LayerVersion(
             self,
             'RuntimeLambdaLayer',
-            code=lmbda.Code.from_asset(
-                'lambdas/layers/runtime/build/python38-runtime.zip'),
+            code=lmbda.Code.from_asset('lambdas/layers/runtime/build/python38-runtime.zip'),
             compatible_runtimes=[lmbda.Runtime.PYTHON_3_8],
-            description='A runtime layer for Python 3.8'
+            description='A runtime layer for Python 3.8',
         )
 
         util_layer = lmbda.LayerVersion(
             self,
             'UtilLambdaLayer',
-            code=lmbda.Code.from_asset(
-                'lambdas/layers/util/build/python38-util.zip'),
+            code=lmbda.Code.from_asset('lambdas/layers/util/build/python38-util.zip'),
             compatible_runtimes=[lmbda.Runtime.PYTHON_3_8],
-            description='A shared utility layer for Python 3.8'
+            description='A shared utility layer for Python 3.8',
         )
 
         # Lambda function: submit job (manual)
@@ -167,7 +162,7 @@ class GplStack(Stack):
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name('AmazonS3ReadOnlyAccess'),
                 iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
-            ]
+            ],
         )
 
         submit_job_manual_lambda_role.add_to_policy(
@@ -180,22 +175,19 @@ class GplStack(Stack):
                 resources=[
                     batch_job_queue.job_queue_arn,
                     f'arn:aws:batch:{self.region}:{self.account}:job-definition/{props["job_definition_name"]}*',
-                ]
+                ],
             )
         )
 
         submit_job_manual_lambda_role.add_to_policy(
-            iam.PolicyStatement(
-                actions=['batch:DescribeJobDefinitions'],
-                resources=['*']
-            )
+            iam.PolicyStatement(actions=['batch:DescribeJobDefinitions'], resources=['*'])
         )
 
         submit_job_manual_lambda_role.add_to_policy(
             iam.PolicyStatement(
                 actions=['ecr:ListImages'],
                 # NOTE(SW): this should be defined elsewhere
-                resources=['arn:aws:ecr:ap-southeast-2:843407916570:repository/gpl-nf']
+                resources=['arn:aws:ecr:ap-southeast-2:843407916570:repository/gpl-nf'],
             )
         )
 
@@ -222,13 +214,9 @@ class GplStack(Stack):
         submit_job_lambda_role_policy = iam.PolicyDocument(
             statements=[
                 iam.PolicyStatement(
-                    actions=['lambda:InvokeFunction'],
-                    resources=[submit_job_manual_lambda.function_arn]
+                    actions=['lambda:InvokeFunction'], resources=[submit_job_manual_lambda.function_arn]
                 ),
-                iam.PolicyStatement(
-                    actions=['execute-api:Invoke'],
-                    resources=['*']
-                ),
+                iam.PolicyStatement(actions=['execute-api:Invoke'], resources=['*']),
             ]
         )
 
@@ -239,10 +227,10 @@ class GplStack(Stack):
             inline_policies=[submit_job_lambda_role_policy],
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
-            ]
+            ],
         )
 
-        submit_job_lambda = lmbda.Function(
+        lmbda.Function(
             self,
             'SubmitJobLambda',
             function_name=f'{props["namespace"]}_submit_job',
@@ -270,7 +258,7 @@ class GplStack(Stack):
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name('AmazonS3ReadOnlyAccess'),
                 iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
-            ]
+            ],
         )
 
         create_linx_plot_docker_image = lmbda.Code.from_asset_image(
@@ -278,7 +266,7 @@ class GplStack(Stack):
             file='docker/Dockerfile.create_linx_plot_lambda',
         )
 
-        create_linx_plot_lambda = lmbda.Function(
+        lmbda.Function(
             self,
             'CreateLinxPlotLambda',
             function_name=f'{props["namespace"]}_create_linx_plot',

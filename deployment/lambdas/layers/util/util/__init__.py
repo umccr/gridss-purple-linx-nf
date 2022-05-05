@@ -10,6 +10,12 @@ LOGGER.setLevel(logging.INFO)
 
 
 def get_environment_variable(name):
+    """Get value of environment variable.
+
+    :param str name: Name of environment variable
+    :returns: Value of environment variable
+    :rtype: str
+    """
     if not (value := os.environ.get(name)):
         msg = f'could not find env variable {name}'
         LOGGER.critical(msg)
@@ -18,6 +24,14 @@ def get_environment_variable(name):
 
 
 def get_ssm_parameter(name, client, decrypt=True):
+    """Get value of SSM parameter.
+
+    :param str name: Name of SSM parameter
+    :param botocore.client.SSM client: boto3 SSM client
+    :param bool decrypt: Decrypt SSM parameter value
+    :returns: Value of SSM parameter
+    :rtype: str
+    """
     response = client.get_parameter(Name=name, WithDecryption=decrypt)
     if not (pm_data := response.get('Parameter')):
         msg = f'could not get SSM parameter {name}'
@@ -27,6 +41,13 @@ def get_ssm_parameter(name, client, decrypt=True):
 
 
 def get_resource(service_name, region_name=None):
+    """Get boto3 resource instance.
+
+    :param str name: Service type
+    :param str region_name: Name of region for service
+    :returns: boto3 resource
+    :rtype: boto3.resources.factory.*.ServiceResource
+    """
     try:
         response = boto3.resource(service_name, region_name=region_name)
     except Exception as err:
@@ -36,6 +57,13 @@ def get_resource(service_name, region_name=None):
 
 
 def get_client(service_name, region_name=None):
+    """Get boto3 client instance.
+
+    :param str name: Client type
+    :param str region_name: Name of region for service
+    :returns: boto3 client
+    :rtype: boto3.client.*
+    """
     try:
         response = boto3.client(service_name, region_name=region_name)
     except Exception as err:
@@ -45,6 +73,12 @@ def get_client(service_name, region_name=None):
 
 
 def get_context_info(context):
+    """Collect information from Lambda context object.
+
+    :param LambdaContext context: Lambda context
+    :returns: Selected LambdaContext attributes
+    :rtype: dict
+    """
     attributes = {
         'function_name',
         'function_version',
