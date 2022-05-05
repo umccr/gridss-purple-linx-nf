@@ -190,6 +190,7 @@ def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event):
         plot_options_list.append(f'-clusterId {event["cluster_ids"]}')
     if 'gene_ids' in event:
         plot_options_list.append(f'-gene \"{event["gene_ids"]}\"')
+        plot_options_list.append(f'-restrict_cluster_by_gene')
     plot_options = ' '.join(plot_options_list)
     # Set outputs
     output_base_dir = '/tmp/linx/'
