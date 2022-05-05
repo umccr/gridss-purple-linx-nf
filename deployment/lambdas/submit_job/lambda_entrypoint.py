@@ -85,6 +85,7 @@ def main(event, context):
         LOGGER.error(msg)
         raise ValueError(msg)
 
+    # Collect submission data
     data = get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
     LOGGER.debug(f'compiled submission data: {data}')
 
