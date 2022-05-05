@@ -300,37 +300,32 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
     :returns: Payload for job submission
     :rtype: dict
     """
-    # Set identifer
-    identifier = f'{tumor_sample_md["project_owner"]}-{tumor_sample_md["project_name"]}_{subject_id}'
     # Get input file paths
     # NOTE(SW): the `/iam/s3` endpoint does not currently allow certain special characters (e.g.
     # '$' and '+') in the pattern string. So we must retrieve a list of all BAMs and VCFs from the
     # data portal for the subject and then manually collect the desired file with regex.
-    file_list = [
+    file_list_all = [
         *get_subject_files(subject_id, '.bam', api_auth),
         *get_subject_files(subject_id, '.vcf.gz', api_auth),
     ]
-    # NOTE(SW): some files are not uniquely named between multiple runs (e.g. normal BAM, manta VCF)
-    # so we must select the desired run directory to obtain required files. The tumor BAM filename
-    # is inherently unique across runs under the assumption that there are no run duplications. So
-    # we obtain the correct run directory from the tumor BAM filepath and filter the input file
-    # list.
+    # Select files that are in the latest 'date directory' for the selected tumor/normal
+    # sample - multiple directories are present when bcbio analyses are re-run
+    date_directory = get_date_directory(file_list_all, tumor_sample_md['sample_id'], subject_id)
+    file_list = [fp for fp in file_list_all if fp.startswith(date_directory)]
+    # Collect the required inputs from the filtered file list
     tumor_bam = get_file_path(get_bam_pattern(tumor_sample_md), file_list)
-    date_dirname = get_date_dirname(tumor_bam)
-    file_list_date_dir = [fp for fp in file_list if date_dirname in fp]
-    # Collect remaining files
-    normal_bam = get_file_path(get_bam_pattern(normal_sample_md), file_list_date_dir)
-    tumor_smlv_vcf = get_file_path(fr'^.+{subject_id}-[^-]+-annotated.vcf.gz$', file_list_date_dir)
-    tumor_sv_vcf = get_file_path(fr'^.+{subject_id}-manta.vcf.gz$', file_list_date_dir)
+    normal_bam = get_file_path(get_bam_pattern(normal_sample_md), file_list)
+    tumor_smlv_vcf = get_file_path(fr'^.+{subject_id}-[^-]+-annotated.vcf.gz$', file_list)
+    tumor_sv_vcf = get_file_path(fr'^.+{subject_id}-manta.vcf.gz$', file_list)
+
     # Set output directory using tumor BAM path
     if not (re_result := re.match(r'^s3://[^/]+/(.+?)/final/.+$', tumor_bam)):
         msg = (
-            f'found non-standard input directory for tumor BAM ({tumor_bam}), refusing to guess '
+            f'found non-standard input directory for tumor BAM ({tumor_bam}), refusing to guess'
             f' output directory please use manual submission'
         )
         LOGGER.critical(msg)
         raise ValueError(msg)
-
     output_prefix_base = re_result.group(1)
     if not re.match('^.+/[0-9]{4}-[0-9]{2}-[0-9]{2}$', output_prefix_base):
         msg = (
@@ -340,9 +335,10 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
         LOGGER.critical(msg)
         raise ValueError(msg)
     output_dir = f's3://{OUTPUT_BUCKET}/{output_prefix_base}/gridss_purple_linx/'
+
     # Create and return submission data dict
     return {
-        'job_name': f'gpl_{identifier}',
+        'job_name': f'gpl_{tumor_sample_md["project_owner"]}-{tumor_sample_md["project_name"]}_{subject_id}',
         'tumor_name': f'{subject_id}_{tumor_sample_md["sample_id"]}_{tumor_sample_md["library_id"]}',
         'normal_name': f'{subject_id}_{normal_sample_md["sample_id"]}_{normal_sample_md["library_id"]}',
         'tumor_bam': tumor_bam,
@@ -379,15 +375,48 @@ def get_subject_files(subject_id, pattern, api_auth):
     return filepaths
 
 
-def get_date_dirname(fp):
-    """Determine root path of a so called 'date directory'.
+def get_date_directory(file_list, sample_id, subject_id):
+    """Determine root path of the latest so called 'date directory'.
 
-    :params str fp: Filepath containing the data directory
+    :params list file_list: Subject file list
+    :params list sample_id: Sample identifier
+    :params list subject_id: Subject identifier
     :returns: Date directory root path
     :rtype: str
     """
-    if not (regex_result := re.match('^.+/WGS/([0-9]{4}-[0-9]{2}-[0-9]{2})/final/.+$', fp)):
-        msg = f'could not obtain required date directory from the tumor BAM: {fp}'
-        LOGGER.critical(msg)
+    # Collect all date directories
+    date_dir_regex_str = fr'''
+        # Leading URI scheme name
+        ^(s3://
+
+        # Require WGS to be present in the path, i.e. exclude WTS analyses
+        .+/WGS/
+
+        # Date component; double curled braces required for f-string
+        (20[0-9]{{2}}-[0-9]{{2}}-[0-9]{{2}})/)
+
+        # Only select for requested tumor BAM
+        .+/{subject_id}_{sample_id}.+-ready.bam$
+    '''
+    date_dir_regex = re.compile(date_dir_regex_str, re.VERBOSE)
+    date_dirs = dict()
+    for fp in file_list:
+        if not (re_result := date_dir_regex.match(fp)):
+            continue
+        date_dirpath = re_result.group(1)
+        date_str = re_result.group(2)
+        if date_str in date_dirs:
+            assert date_dirs[date_str] == date_dirpath
+        else:
+            date_dirs[date_str] = date_dirpath
+    # Get the latest date directory if there are multiple
+    if len(date_dirs) == 0:
+        msg = 'Failed to discover any \'date directories\''
+        LOGGER.error(msg)
         raise ValueError(msg)
-    return regex_result.group(1)
+    if len(date_dirs) > 1:
+        date_dirs_str = '\n\t'.join(date_dirs.values())
+        LOGGER.info(f'Multiple \'date directories\' found:\n\t{date_dirs_str}')
+    date_dir = date_dirs[sorted(date_dirs).pop()]
+    LOGGER.info(f'Using \'date directory\' {date_dir}')
+    return date_dir
