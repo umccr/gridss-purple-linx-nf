@@ -33,11 +33,8 @@ def main(event, context):
 
     # Grab some information about requested plot for selected genes
     if 'gene_ids' in event:
-        svs_fp = f'{linx_annotations_dir}{event["sample_id"]}.linx.svs.tsv'
-        gene_data_fp = f'{ensembl_data_cache_dir}ensembl_gene_data.csv'
-        cluster_genes = get_cluster_genes(svs_fp)
-        gene_data = get_gene_data(gene_data_fp)
-        check_plot_information(cluster_genes, gene_data, event)
+        gene_data = get_gene_data(f'{ensembl_data_cache_dir}ensembl_gene_data.csv')
+        check_gene_symbol(cluster_genes, gene_data, event)
 
     # Generate LINX plot
     plot_dir = generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event)
@@ -48,8 +45,7 @@ def main(event, context):
     execute_command(command)
 
 
-def check_plot_information(cluster_genes, gene_data, event):
-    # Require genes are present in Ensembl data cache
+def check_gene_symbol(gene_data, event):
     genes = event['gene_ids'].split(';')
     genes_missing = list()
     for gene in genes:
@@ -61,25 +57,6 @@ def check_plot_information(cluster_genes, gene_data, event):
         plurality = 'genes' if len(genes_missing) > 1 else 'gene'
         msg = f'{len(genes_missing)} {plurality} not present in the Ensembl data cache:\n\t{genes_missing_str}'
         raise ValueError(msg)
-    # Check clusters
-    if cluster_str := event.get('cluster_ids'):
-        clusters = cluster_str.split(',')
-        for gene in genes:
-            gene_clusters = {c for c in clusters if gene in cluster_genes[c]}
-            if not gene_clusters:
-                LOGGER.warning(f'{gene} not found in any provided cluster ({cluster_str})')
-                continue
-            for cluster in gene_clusters:
-                LOGGER.info(f'{gene} found in cluster {cluster}')
-    # Check chromosomes
-    if chrom_str := event.get('chromosomes'):
-        chroms = set(chrom_str.split(','))
-        for gene in genes:
-            gene_chrom = f'chr{gene_data[gene].Chromosome}'
-            if gene_chrom in chroms:
-                LOGGER.info(f'gene {gene} found on {gene_chrom}')
-            else:
-                LOGGER.warning(f'gene {gene} present on {gene_chrom} is not in specified list ({chrom_str})')
 
 
 def validate_event_data(event):
@@ -143,29 +120,6 @@ def download_ensembl_data_cache():
     local_path = '/tmp/ensembl-data-cache/'
     execute_command(f'aws s3 sync {s3_path} {local_path}')
     return local_path
-
-
-def get_cluster_genes(fp):
-    cluster_genes = dict()
-    with open(fp, 'r') as fh:
-        line_token_gen = (line.rstrip().split('\t') for line in fh)
-        header_tokens = next(line_token_gen)
-        RecordSv = collections.namedtuple('RecordSv', header_tokens)
-        for line_tokens in line_token_gen:
-            record = RecordSv(*line_tokens)
-            # Remove empty values, skip if no genes to record
-            genes = set()
-            for gene_str in (record.geneStart, record.geneEnd):
-                if gene_str == '':
-                    continue
-                genes.update(gene_str.split(';'))
-            if len(genes) == 0:
-                continue
-            # Adding all geneStart and geneEntries regardless of non-empty value
-            if record.clusterId not in cluster_genes:
-                cluster_genes[record.clusterId] = set()
-            cluster_genes[record.clusterId].update(genes)
-    return cluster_genes
 
 
 def get_gene_data(fp):
