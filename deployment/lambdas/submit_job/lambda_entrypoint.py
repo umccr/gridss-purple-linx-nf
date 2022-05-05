@@ -72,7 +72,19 @@ def main(event, context):
         assert tumor_sample_md['subject_id'] == normal_sample_md['subject_id']
         subject_id = tumor_sample_md['subject_id']
 
-    # Submission data
+    # Check sample type; prevent runs using FFPE samples
+    ffpe_samples = list()
+    for md in (tumor_sample_md, normal_sample_md):
+        if md['source'].lower() != 'ffpe':
+            continue
+        ffpe_samples.append(f'{md["sample_id"]} ({md["phenotype"]}) [{md["source"]}]')
+    if ffpe_samples:
+        plurality = 'FFPE samples' if len(ffpe_samples) > 1 else 'a FFPE sample'
+        ffpe_samples_str = '\n\t'.join(ffpe_samples)
+        msg = f'Got {plurality}, refusing to run:\n\t{ffpe_samples_str}'
+        LOGGER.error(msg)
+        raise ValueError(msg)
+
     data = get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
     LOGGER.debug(f'compiled submission data: {data}')
 
