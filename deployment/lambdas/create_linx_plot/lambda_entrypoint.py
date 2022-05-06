@@ -129,8 +129,8 @@ def validate_event_data(event):
         raise ValueError('Got mutually exclusive arguments \'cluster_ids\' and \'chromosomes\'')
     if has_regions and has_chromosomes:
         raise ValueError('Got mutually exclusive arguments \'regions\' and \'chromosomes\'')
-    if not (has_cluster_ids or has_chromosomes or has_gene_ids):
-        raise ValueError('Either \'cluster_ids\', \'chromosomes\', or \'gene_ids\' is required')
+    if not (has_cluster_ids or has_chromosomes or has_gene_ids or has_regions):
+        raise ValueError('Either \'cluster_ids\', \'chromosomes\', \'gene_ids\', or \'regions\' is required')
 
     # Disallow trailing ';'
     if has_gene_ids and event['gene_ids'].endswith(';'):
