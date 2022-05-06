@@ -29,7 +29,7 @@ def main(event, context):
         "cluster_ids": "44,32",
         "regions": "chr8:127000000:127800000;chr11:122000000:125000000",
         "chromosomes": "chr9,chr4",
-        "gene_ids": "NTRK2,LINC02377",
+        "gene_ids": "NTRK2;LINC02377",
         "gpl_directory": "<proj-owner>-<proj-name>/<subject_id>/WGS/<YYYY-MM-DD>/gridss_purple_linx/"
     }
     ```

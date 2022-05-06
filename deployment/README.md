@@ -207,10 +207,11 @@ The manually created LINX plots with be placed alongside the default LINX output
 
 #### Lambda arguments
 
-| Argument          | Description                                                                               |
-| ---               | ---                                                                                       |
-| `sample_id`       | Name of sample. *Must* match LINX output file prefix.                                     |
-| `cluster_ids`     | Comma-separated list of cluster identifiers to plot. Cannot be used with `chromosomes`.   |
-| `chromsomes`      | Comma-separated list of chromosomes to plot. Cannot be used with `cluster_ids`.           |
-| `gene_ids`        | Comma-separated list of genes to plot. Must be present in the Ensembel data cache.        |
-| `gpl_directory`   | S3 path to the GRIDSS/PURPLE/LINX output.                                                 |
+| Argument          | Description                                                                                           |
+| ---               | ---                                                                                                   |
+| `sample_id`       | Name of sample. *Must* match LINX output file prefix.                                                 |
+| `cluster_ids`     | Comma-separated list of cluster identifiers to plot. Cannot be used with `chromosomes`.               |
+| `regions`         | Semicolon-separated list of regions to plot (e.g. chr1:1:10000). Cannot be used with `chromosomes`.   |
+| `chromsomes`      | Comma-separated list of chromosomes to plot. Cannot be used with `cluster_ids` or `regions`.          |
+| `gene_ids`        | Semicolon-separated list of genes to plot. Must be present in the Ensembel data cache.                |
+| `gpl_directory`   | S3 path to the GRIDSS/PURPLE/LINX output.                                                             |
