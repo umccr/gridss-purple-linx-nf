@@ -112,9 +112,9 @@ def validate_event_data(event):
 
     # Check required arguments are present
     if not event.get('sample_id'):
-        raise ValueError('The required argument sample_id is missing')
+        raise ValueError('The required argument \'sample_id\' is missing')
     if not event.get('gpl_directory'):
-        raise ValueError('The required argument gpl_directory is missing')
+        raise ValueError('The required argument \'gpl_directory\' is missing')
 
     # Attempt to detect bucket in gpl_directory
     if event['gpl_directory'].startswith('s3://'):
@@ -126,11 +126,11 @@ def validate_event_data(event):
     has_gene_ids = 'gene_ids' in event
     has_regions = 'regions' in event
     if has_cluster_ids and has_chromosomes:
-        raise ValueError('Got mutually exclusive arguments cluster_ids and chromosomes')
+        raise ValueError('Got mutually exclusive arguments \'cluster_ids\' and \'chromosomes\'')
     if has_regions and has_chromosomes:
-        raise ValueError('Got mutually exclusive arguments regions and chromosomes')
+        raise ValueError('Got mutually exclusive arguments \'regions\' and \'chromosomes\'')
     if not (has_cluster_ids or has_chromosomes or has_gene_ids):
-        raise ValueError('Either cluster_ids, chromosomes, or gene_ids is required')
+        raise ValueError('Either \'cluster_ids\', \'chromosomes\', or \'gene_ids\' is required')
 
     # Disallow trailing ';'
     if has_gene_ids and event['gene_ids'].endswith(';'):
