@@ -6,7 +6,7 @@ ENV LAMBDA_RUNTIME_DIR=/var/runtime
 ARG GH_BASE_URL=https://github.com/hartwigmedical/hmftools/releases/download
 RUN \
   mkdir -p /opt/hmftools/ && \
-  wget -q -O /opt/hmftools/linx.jar "${GH_BASE_URL}/linx-v1.18/linx.jar"
+  wget -q -O /opt/hmftools/linx.jar "${GH_BASE_URL}/linx-v1.20_beta/linx_v1.20_beta.jar"
 
 RUN \
   mamba install -y \
