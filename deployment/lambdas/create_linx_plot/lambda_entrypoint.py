@@ -177,7 +177,7 @@ def validate_chromosomes(chromosomes):
         'chrY',
     }
     chrm_invalid = list()
-    for chrm in chromosomes.split(','):
+    for chrm in chromosomes:
         if chrm not in chrm_valid:
             chrm_invalid.append(chrm)
     return chrm_invalid
