@@ -136,7 +136,7 @@ def validate_event_data(event):
         if event['regions'].endswith(';'):
             raise ValueError('the \'regions\' option cannot end with a \';\'')
         # Check region tokens match expected format
-        region_regex = re.compile(r'^(chr[0-9]):([0-9]+):([0-9]+)$')
+        region_regex = re.compile(r'^(chr(?:[0-9]{1,2}|[XY])):([0-9]+):([0-9]+)$')
         chrms_region = set()
         for region in event['regions'].split(';'):
             if not (re_result := region_regex.match(region)):
