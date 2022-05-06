@@ -116,6 +116,10 @@ def validate_event_data(event):
     if not event.get('gpl_directory'):
         raise ValueError('The required argument gpl_directory is missing')
 
+    # Attempt to detect bucket in gpl_directory
+    if event['gpl_directory'].startswith('s3://'):
+        raise ValueError('The \'gpl_directory\' argument should not contain the S3 bucket')
+
     # Basic argument rules
     has_cluster_ids = 'cluster_ids' in event
     has_chromosomes = 'chromosomes' in event
