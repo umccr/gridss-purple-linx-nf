@@ -7,6 +7,7 @@ import logging
 import re
 import shutil
 import subprocess
+import tempfile
 
 
 import util
@@ -48,8 +49,11 @@ def main(event, context):
         return response_error
 
     # Download data
-    linx_annotations_dir = download_linx_annotation_data(event['gpl_directory'])
-    ensembl_data_cache_dir = download_ensembl_data_cache()
+    # fmt: off
+    work_dh = tempfile.TemporaryDirectory(dir='/tmp')  # pylint: disable=consider-using-with
+    # fmt: on
+    linx_annotations_dir = download_linx_annotation_data(event['gpl_directory'], work_dh)
+    ensembl_data_cache_dir = download_ensembl_data_cache(work_dh)
 
     # Grab some information about requested plot for selected genes
     if 'gene_ids' in event:
@@ -57,7 +61,7 @@ def main(event, context):
         check_gene_symbol(gene_data, event)
 
     # Generate LINX plot
-    plot_dir = generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event)
+    plot_dir = generate_plots(linx_annotations_dir, ensembl_data_cache_dir, work_dh, event)
 
     # Upload plots
     s3_linx_manual_path = f's3://{OUTPUT_BUCKET}/{event["gpl_directory"]}/linx/plots_manual/'
@@ -183,7 +187,7 @@ def validate_chromosomes(chromosomes):
     return chrm_invalid
 
 
-def download_linx_annotation_data(gpl_directory):
+def download_linx_annotation_data(gpl_directory, work_dh):
     """Download LINX annotation data.
 
     :params str gpl_directory: Directory path to GPL output
@@ -191,19 +195,19 @@ def download_linx_annotation_data(gpl_directory):
     :rtype: str
     """
     s3_path = f's3://{OUTPUT_BUCKET}/{gpl_directory}/linx/annotations/'
-    local_path = '/tmp/linx_annotations/'
-    execute_command(f'aws s3 sync {s3_path} {local_path}/')
+    local_path = f'{work_dh.name}/linx_annotations/'
+    execute_command(f'aws s3 sync {s3_path} {local_path}')
     return local_path
 
 
-def download_ensembl_data_cache():
+def download_ensembl_data_cache(work_dh):
     """Download HMF Ensembl data cache from reference store.
 
     :returns: Local path of downloaded data
     :rtype: str
     """
     s3_path = f'{REFERENCE_DATA}Ensembl-Data-Cache/38/'
-    local_path = '/tmp/ensembl-data-cache/'
+    local_path = f'{work_dh.name}/ensembl-data-cache/'
     execute_command(f'aws s3 sync {s3_path} {local_path}')
     return local_path
 
@@ -228,7 +232,7 @@ def get_gene_data(fp):
     return gene_data
 
 
-def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event):
+def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, work_dh, event):
     """Construct arguments for LINX visualiser and run.
 
     :param str linx_annotations_dir: Local path to LINX annotations
@@ -250,9 +254,11 @@ def generate_plots(linx_annotations_dir, ensembl_data_cache_dir, event):
         plot_options_list.append(f'-specific_regions \"{event["regions"]}\"')
     plot_options = ' '.join(plot_options_list)
     # Set outputs
-    output_base_dir = '/tmp/linx/'
-    output_plot_dir = f'{output_base_dir}plot/'
-    output_data_dir = f'{output_base_dir}data/'
+    # NOTE(SW): a temporary directory is required to separate outputs of function calls as Lambda
+    # doesn't necessarily launch fresh Docker containers for each invocation
+    output_base_dir = f'{work_dh.name}/linx/'
+    output_plot_dir = f'{output_base_dir}/plot/'
+    output_data_dir = f'{output_base_dir}/data/'
     # Construct full command
     command = f'''
       java \
