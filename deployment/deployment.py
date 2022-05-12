@@ -8,8 +8,10 @@ from aws_cdk import (
     aws_iam as iam,
     aws_lambda as lmbda,
     aws_s3 as s3,
+    aws_ssm as ssm,
     Stack,
     Duration,
+    CfnOutput,
 )
 
 
@@ -225,7 +227,13 @@ class GplStack(Stack):
             auth_type=fn_url_auth_type,
             cors=fn_url_cors_options
         )
-        core.CfnOutput(self, 'SubmitJobManualLambdaUrl', value=submit_job_manual_lambda_fn_url.url)
+        CfnOutput(self, 'SubmitJobManualLambdaUrl', value=submit_job_manual_lambda_fn_url.url)
+        ssm.StringParameter(
+            self,
+            'SubmitJobManualLambdaUrlSSM',
+            parameter_name='/gpl/submit_job_manual_lambda_fn_url',
+            string_value=submit_job_manual_lambda_fn_url.url,
+        )
 
         # Lambda function: submit job (automated input collection)
         submit_job_lambda_role_policy = iam.PolicyDocument(
@@ -247,7 +255,7 @@ class GplStack(Stack):
             ],
         )
 
-        lmbda.Function(
+        submit_job_lambda = lmbda.Function(
             self,
             'SubmitJobLambda',
             function_name=f'{props["namespace"]}_submit_job',
@@ -258,6 +266,7 @@ class GplStack(Stack):
                 'PORTAL_API_BASE_URL': props['portal_api_base_url'],
                 'SUBMISSION_LAMBDA_ARN': submit_job_manual_lambda.function_arn,
                 'OUTPUT_BUCKET': props['output_bucket'],
+                'BATCH_QUEUE_NAME': props['batch_queue_name'],
             },
             role=submit_job_lambda_role,
             timeout=Duration.seconds(60),
@@ -270,7 +279,13 @@ class GplStack(Stack):
             auth_type=fn_url_auth_type,
             cors=fn_url_cors_options
         )
-        core.CfnOutput(self, 'SubmitJobLambdaUrl', value=submit_job_lambda_fn_url.url)
+        CfnOutput(self, 'SubmitJobLambdaUrl', value=submit_job_lambda_fn_url.url)
+        ssm.StringParameter(
+            self,
+            'SubmitJobLambdaUrlSSM',
+            parameter_name='/gpl/submit_job_lambda_fn_url',
+            string_value=submit_job_lambda_fn_url.url,
+        )
 
         # Lambda function: create LINX plots
         create_linx_plot_lambda_role = iam.Role(
@@ -288,7 +303,7 @@ class GplStack(Stack):
             file='docker/Dockerfile.create_linx_plot_lambda',
         )
 
-        lmbda.Function(
+        create_linx_plot_lambda = lmbda.Function(
             self,
             'CreateLinxPlotLambda',
             function_name=f'{props["namespace"]}_create_linx_plot',
@@ -307,7 +322,13 @@ class GplStack(Stack):
             auth_type=fn_url_auth_type,
             cors=fn_url_cors_options
         )
-        core.CfnOutput(self, 'CreateLinxPlotLambdaUrl', value=create_linx_plot_lambda_fn_url.url)
+        CfnOutput(self, 'CreateLinxPlotLambdaUrl', value=create_linx_plot_lambda_fn_url.url)
+        ssm.StringParameter(
+            self,
+            'CreateLinxPlotLambdaUrlSSM',
+            parameter_name='/gpl/create_linx_plot_lambda_fn_url',
+            string_value=create_linx_plot_lambda_fn_url.url,
+        )
 
         # S3 output directory
         roles_s3_write_access = [

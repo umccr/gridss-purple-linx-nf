@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import tempfile
 
+from libumccr.aws import liblambda
 
 import util
 
@@ -43,6 +44,8 @@ def main(event, context):
     # Log invocation data
     LOGGER.info(f'event: {json.dumps(event)}')
     LOGGER.info(f'context: {json.dumps(util.get_context_info(context))}')
+
+    event = liblambda.transpose_fn_url_event(event=event)
 
     # Check inputs and ensure that output directory is writable
     if response_error := validate_event_data(event):
