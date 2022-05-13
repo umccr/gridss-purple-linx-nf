@@ -37,6 +37,9 @@ RUN \
   pip install --no-cache-dir awslambdaric /tmp/util/ --target "${LAMBDA_TASK_ROOT}" && \
   rm -r /tmp/util/
 
+COPY lambdas/layers/runtime/ /tmp/runtime/
+RUN pip install --no-cache-dir -r /tmp/runtime/requirements.txt
+
 COPY lambdas/create_linx_plot/lambda_entrypoint.py "${LAMBDA_TASK_ROOT}"
 
 WORKDIR ${LAMBDA_TASK_ROOT}

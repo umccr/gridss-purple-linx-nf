@@ -13,3 +13,5 @@ conda_env/
 lambdas/layers/*/build
 package-lock.json
 work/
+
+build/

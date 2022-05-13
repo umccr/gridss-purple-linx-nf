@@ -7,7 +7,7 @@ import urllib.parse
 
 import requests
 import aws_requests_auth.boto_utils
-
+from libumccr.aws import liblambda
 
 import util
 
@@ -16,10 +16,12 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 
 CLIENT_LAMBDA = util.get_client('lambda')
+CLIENT_BATCH = util.get_client('batch')
 
 PORTAL_API_BASE_URL = util.get_environment_variable('PORTAL_API_BASE_URL')
 SUBMISSION_LAMBDA_ARN = util.get_environment_variable('SUBMISSION_LAMBDA_ARN')
 OUTPUT_BUCKET = util.get_environment_variable('OUTPUT_BUCKET')
+BATCH_QUEUE_NAME = util.get_environment_variable('BATCH_QUEUE_NAME')
 
 
 def main(event, context):
@@ -42,6 +44,8 @@ def main(event, context):
     # Log invocation data
     LOGGER.info(f'event: {json.dumps(event)}')
     LOGGER.info(f'context: {json.dumps(util.get_context_info(context))}')
+
+    event = liblambda.transpose_fn_url_event(event=event)
 
     # Check inputs and ensure that output directory is writable
     validate_event_data(event)
@@ -89,6 +93,29 @@ def main(event, context):
     data = get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
     LOGGER.debug(f'compiled submission data: {data}')
 
+    # Abort job submission, if job_name is in gpl-job-queue
+    job_list = CLIENT_BATCH.list_jobs(
+        jobQueue=BATCH_QUEUE_NAME,
+        filters=[
+            {
+                'name': 'AFTER_CREATED_AT',
+                'values': [
+                    '0',
+                ]
+            },
+        ]
+    )
+    for job in job_list['jobSummaryList']:
+        existing_job_name = job['jobName']
+        if data['job_name'] == job['jobName']:
+            # no-ops
+            return {
+                'statusCode': 202,
+                'body': json.dumps({
+                    'message': f'Subject {subject_id} has existing batch job with name {existing_job_name}'
+                }),
+            }
+
     # Invoke Lambda
     data_json = json.dumps(data)
     LOGGER.info(f'Invoking Lambda {SUBMISSION_LAMBDA_ARN} with {data_json}')
@@ -97,6 +124,13 @@ def main(event, context):
         Payload=data_json,
     )
     LOGGER.debug(f'got response: {response}')
+
+    return {
+        'statusCode': response['StatusCode'],
+        'body': json.dumps({
+            'message': f'GPL Report batch job {data["job_name"]} is running. Please check in Slack channel #biobots'
+        }),
+    }
 
 
 def validate_event_data(event):
