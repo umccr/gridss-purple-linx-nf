@@ -194,7 +194,7 @@ class GplStack(Stack):
         )
 
         submit_job_manual_lambda_role.add_to_policy(
-            iam.PolicyStatement(actions=['batch:DescribeJobDefinitions'], resources=['*'])
+            iam.PolicyStatement(actions=['batch:DescribeJobDefinitions', 'batch:ListJobs'], resources=['*'])
         )
 
         submit_job_manual_lambda_role.add_to_policy(
@@ -220,6 +220,7 @@ class GplStack(Stack):
             },
             role=submit_job_manual_lambda_role,
             layers=[
+                runtime_layer,
                 util_layer,
             ],
         )
@@ -241,7 +242,7 @@ class GplStack(Stack):
                 iam.PolicyStatement(
                     actions=['lambda:InvokeFunction'], resources=[submit_job_manual_lambda.function_arn]
                 ),
-                iam.PolicyStatement(actions=['execute-api:Invoke'], resources=['*']),
+                iam.PolicyStatement(actions=['execute-api:Invoke', 'batch:ListJobs'], resources=['*']),
             ]
         )
 
