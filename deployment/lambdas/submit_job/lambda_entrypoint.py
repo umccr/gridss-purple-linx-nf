@@ -128,7 +128,8 @@ def main(event, context):
     return {
         'statusCode': response['StatusCode'],
         'body': json.dumps({
-            'message': f'GPL Report batch job {data["job_name"]} is running. Please check in Slack channel #biobots'
+            'message': f'GPL Report batch job {data["job_name"]} was submitted successfully. '
+                       f'Please check the #biobots Slack channel for updates.'
         }),
     }
 
