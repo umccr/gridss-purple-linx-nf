@@ -28,7 +28,11 @@ class GplStack(Stack):
                 'https://data.dev.umccr.org',
                 'https://data.prod.umccr.org',
             ],
-            allowed_methods=[lmbda.HttpMethod.GET, lmbda.HttpMethod.POST]
+            allowed_methods=[
+                lmbda.HttpMethod.GET,
+                lmbda.HttpMethod.POST,
+            ],
+            allowed_headers=['*'],
         )
 
         fn_url_auth_type = lmbda.FunctionUrlAuthType.AWS_IAM  # IAM is the only option for now
