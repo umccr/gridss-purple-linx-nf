@@ -230,8 +230,7 @@ class GplStack(Stack):
             ],
         )
         submit_job_manual_lambda_fn_url = submit_job_manual_lambda.add_function_url(
-            auth_type=fn_url_auth_type,
-            cors=fn_url_cors_options
+            auth_type=fn_url_auth_type, cors=fn_url_cors_options
         )
         CfnOutput(self, 'SubmitJobManualLambdaUrl', value=submit_job_manual_lambda_fn_url.url)
         ssm.StringParameter(
@@ -282,8 +281,7 @@ class GplStack(Stack):
             ],
         )
         submit_job_lambda_fn_url = submit_job_lambda.add_function_url(
-            auth_type=fn_url_auth_type,
-            cors=fn_url_cors_options
+            auth_type=fn_url_auth_type, cors=fn_url_cors_options
         )
         CfnOutput(self, 'SubmitJobLambdaUrl', value=submit_job_lambda_fn_url.url)
         ssm.StringParameter(
@@ -325,8 +323,7 @@ class GplStack(Stack):
             role=create_linx_plot_lambda_role,
         )
         create_linx_plot_lambda_fn_url = create_linx_plot_lambda.add_function_url(
-            auth_type=fn_url_auth_type,
-            cors=fn_url_cors_options
+            auth_type=fn_url_auth_type, cors=fn_url_cors_options
         )
         CfnOutput(self, 'CreateLinxPlotLambdaUrl', value=create_linx_plot_lambda_fn_url.url)
         ssm.StringParameter(

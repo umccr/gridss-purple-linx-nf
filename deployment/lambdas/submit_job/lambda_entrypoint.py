@@ -101,9 +101,9 @@ def main(event, context):
                 'name': 'AFTER_CREATED_AT',
                 'values': [
                     '0',
-                ]
+                ],
             },
-        ]
+        ],
     )
     for job in job_list['jobSummaryList']:
         existing_job_name = job['jobName']
@@ -111,9 +111,9 @@ def main(event, context):
             # no-ops
             return {
                 'statusCode': 202,
-                'body': json.dumps({
-                    'message': f'Subject {subject_id} has existing batch job with name {existing_job_name}'
-                }),
+                'body': json.dumps(
+                    {'message': f'Subject {subject_id} has existing batch job with name {existing_job_name}'}
+                ),
             }
 
     # Invoke Lambda
@@ -127,10 +127,12 @@ def main(event, context):
 
     return {
         'statusCode': response['StatusCode'],
-        'body': json.dumps({
-            'message': f'GPL Report batch job {data["job_name"]} was submitted successfully. '
-                       f'Please check the #biobots Slack channel for updates.'
-        }),
+        'body': json.dumps(
+            {
+                'message': f'GPL Report batch job {data["job_name"]} was submitted successfully. '
+                f'Please check the #biobots Slack channel for updates.'
+            }
+        ),
     }
 
 
