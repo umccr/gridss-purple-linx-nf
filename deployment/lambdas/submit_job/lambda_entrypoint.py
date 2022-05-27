@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 import json
 import logging
+import os
 import re
 import urllib.parse
 
 
 import requests
 import aws_requests_auth.boto_utils
-from libumccr.aws import liblambda
+import libumccr.aws
+import libumccr.aws.liblambda
 
 import util
 
@@ -15,13 +17,13 @@ import util
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 
-CLIENT_LAMBDA = util.get_client('lambda')
-CLIENT_BATCH = util.get_client('batch')
+CLIENT_LAMBDA = libumccr.aws.client('lambda')
+CLIENT_BATCH = libumccr.aws.client('batch')
 
-PORTAL_API_BASE_URL = util.get_environment_variable('PORTAL_API_BASE_URL')
-SUBMISSION_LAMBDA_ARN = util.get_environment_variable('SUBMISSION_LAMBDA_ARN')
-OUTPUT_BUCKET = util.get_environment_variable('OUTPUT_BUCKET')
-BATCH_QUEUE_NAME = util.get_environment_variable('BATCH_QUEUE_NAME')
+PORTAL_API_BASE_URL = os.environ('PORTAL_API_BASE_URL')
+SUBMISSION_LAMBDA_ARN = os.environ('SUBMISSION_LAMBDA_ARN')
+OUTPUT_BUCKET = os.environ('OUTPUT_BUCKET')
+BATCH_QUEUE_NAME = os.environ('BATCH_QUEUE_NAME')
 
 
 def main(event, context):
@@ -45,7 +47,7 @@ def main(event, context):
     LOGGER.info(f'event: {json.dumps(event)}')
     LOGGER.info(f'context: {json.dumps(util.get_context_info(context))}')
 
-    event = liblambda.transpose_fn_url_event(event=event)
+    event = libumccr.aws.liblambda.transpose_fn_url_event(event=event)
 
     # Check inputs and ensure that output directory is writable
     validate_event_data(event)

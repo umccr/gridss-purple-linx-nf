@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 import json
 import logging
+import os
 import re
 import urllib.parse
 
 
 import botocore
+import libumccr.aws
 import libumccr.aws.liblambda
 import libica.openapi.libgds
 
@@ -17,15 +19,15 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 
-REFERENCE_DATA = util.get_environment_variable('REFERENCE_DATA')
-BATCH_QUEUE_NAME = util.get_environment_variable('BATCH_QUEUE_NAME')
-JOB_DEFINITION_ARN = util.get_environment_variable('JOB_DEFINITION_ARN')
-JOB_DEFINITION_NAME = util.get_environment_variable('JOB_DEFINITION_NAME')
+REFERENCE_DATA = os.environ('REFERENCE_DATA')
+BATCH_QUEUE_NAME = os.environ('BATCH_QUEUE_NAME')
+JOB_DEFINITION_ARN = os.environ('JOB_DEFINITION_ARN')
+JOB_DEFINITION_NAME = os.environ('JOB_DEFINITION_NAME')
 
-CLIENT_BATCH = util.get_client('batch')
-CLIENT_ERC = util.get_client('ecr')
-CLIENT_S3 = util.get_client('s3')
-RESOURCE_S3 = util.get_resource('s3')
+CLIENT_BATCH = libumccr.aws.client('batch')
+CLIENT_ERC = libumccr.aws.client('ecr')
+CLIENT_S3 = libumccr.aws.client('s3')
+RESOURCE_S3 = libumccr.aws.resource('s3')
 
 FILE_EXTENSIONS = {
     'bam': {'bam'},

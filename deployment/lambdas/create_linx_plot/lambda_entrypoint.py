@@ -4,12 +4,15 @@ import datetime
 import glob
 import json
 import logging
+import os
 import re
 import shutil
 import subprocess
 import tempfile
 
-from libumccr.aws import liblambda
+
+import libumccr.aws.liblambda
+
 
 import util
 
@@ -17,8 +20,8 @@ import util
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 
-OUTPUT_BUCKET = util.get_environment_variable('OUTPUT_BUCKET')
-REFERENCE_DATA = util.get_environment_variable('REFERENCE_DATA')
+OUTPUT_BUCKET = os.environ('OUTPUT_BUCKET')
+REFERENCE_DATA = os.environ('REFERENCE_DATA')
 
 
 def main(event, context):
@@ -45,7 +48,7 @@ def main(event, context):
     LOGGER.info(f'event: {json.dumps(event)}')
     LOGGER.info(f'context: {json.dumps(util.get_context_info(context))}')
 
-    event = liblambda.transpose_fn_url_event(event=event)
+    event = libumccr.aws.liblambda.transpose_fn_url_event(event=event)
 
     # Check inputs and ensure that output directory is writable
     if response_error := validate_event_data(event):
