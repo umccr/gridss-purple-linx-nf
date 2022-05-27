@@ -115,6 +115,10 @@ def main(event, context):
                 {'type': 'MEMORY', 'value': str(instance_memory)},
                 {'type': 'VCPU', 'value': str(instance_vcpus)},
             ],
+            'environment': [
+                # Required for libumccr.aws.libsm.get_secret
+                {'name': 'AWS_DEFAULT_REGION', 'value': os.environ['AWS_DEFAULT_REGION']},
+            ],
         },
     )
     if not (job_id := response_job.get('jobId')):
