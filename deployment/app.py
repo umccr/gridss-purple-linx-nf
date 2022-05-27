@@ -9,13 +9,16 @@ from deployment import GplStack
 
 
 # Set config
+stack_name = 'gridss-purple-linx'
+
 tags = {
     'Creator': 'cdk',
     'Owner': 'swatts',
+    'Stack': stack_name,
 }
 
 stack_props = {
-    'stack_name': 'gridss-purple-linx',
+    'stack_name': stack_name,
     'namespace': 'gpl',
     'batch_queue_name': 'gpl-job-queue',
     'job_definition_name': 'gpl',
@@ -38,7 +41,7 @@ stack_props.update(deploy_context)
 # Create stack
 GplStack(
     app,
-    stack_props['stack_name'],
+    stack_name,
     stack_props,
     env=aws_env,
 )
