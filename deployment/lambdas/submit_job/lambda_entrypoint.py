@@ -20,10 +20,10 @@ LOGGER.setLevel(logging.DEBUG)
 CLIENT_LAMBDA = libumccr.aws.client('lambda')
 CLIENT_BATCH = libumccr.aws.client('batch')
 
-PORTAL_API_BASE_URL = os.environ('PORTAL_API_BASE_URL')
-SUBMISSION_LAMBDA_ARN = os.environ('SUBMISSION_LAMBDA_ARN')
-OUTPUT_BUCKET = os.environ('OUTPUT_BUCKET')
-BATCH_QUEUE_NAME = os.environ('BATCH_QUEUE_NAME')
+PORTAL_API_BASE_URL = os.environ['PORTAL_API_BASE_URL']
+SUBMISSION_LAMBDA_ARN = os.environ['SUBMISSION_LAMBDA_ARN']
+OUTPUT_BUCKET = os.environ['OUTPUT_BUCKET']
+BATCH_QUEUE_NAME = os.environ['BATCH_QUEUE_NAME']
 
 
 def main(event, context):

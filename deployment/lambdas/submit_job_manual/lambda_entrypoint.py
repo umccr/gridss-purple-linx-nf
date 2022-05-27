@@ -19,10 +19,10 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 
-REFERENCE_DATA = os.environ('REFERENCE_DATA')
-BATCH_QUEUE_NAME = os.environ('BATCH_QUEUE_NAME')
-JOB_DEFINITION_ARN = os.environ('JOB_DEFINITION_ARN')
-JOB_DEFINITION_NAME = os.environ('JOB_DEFINITION_NAME')
+REFERENCE_DATA = os.environ['REFERENCE_DATA']
+BATCH_QUEUE_NAME = os.environ['BATCH_QUEUE_NAME']
+JOB_DEFINITION_ARN = os.environ['JOB_DEFINITION_ARN']
+JOB_DEFINITION_NAME = os.environ['JOB_DEFINITION_NAME']
 
 CLIENT_BATCH = libumccr.aws.client('batch')
 CLIENT_ERC = libumccr.aws.client('ecr')

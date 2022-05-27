@@ -20,8 +20,8 @@ import util
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 
-OUTPUT_BUCKET = os.environ('OUTPUT_BUCKET')
-REFERENCE_DATA = os.environ('REFERENCE_DATA')
+OUTPUT_BUCKET = os.environ['OUTPUT_BUCKET']
+REFERENCE_DATA = os.environ['REFERENCE_DATA']
 
 
 def main(event, context):
