@@ -1,3 +1,4 @@
 requests
 aws-requests-auth
 libumccr==0.2.0
+libica==2.0.0
