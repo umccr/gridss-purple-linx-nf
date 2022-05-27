@@ -2,10 +2,13 @@
 import json
 import logging
 import re
+import urllib.parse
 
 
 import botocore
-from libumccr.aws import liblambda
+import libumccr.aws.liblambda
+import libica.openapi.libgds
+
 
 import util
 
@@ -44,11 +47,11 @@ def main(event, context):
         "job_name": "gpl_<proj-owner>-<proj-name>_<subject-id>",
         "tumor_name": "<subject-id>_<tumor-sample-id>_<tumor-sample-lane>",
         "normal_name": "<subject-id>_<normal-sample-id>_<normal-sample-lane>",
-        "tumor_bam": "<tumor-bam-s3-path>".
-        "normal_bam": "<normal-bam-s3-path>",
-        "tumor_smlv_vcf": "<tumor-smlv-vcf-s3-path>",
-        "tumor_sv_vcf": "<tumor-sv-vcf-s3-path>",
-        "output_dir": "<output-directory-s3-path>"
+        "tumor_bam": "<tumor-bam-remote-path>".
+        "normal_bam": "<normal-bam-remote-path>",
+        "tumor_smlv_vcf": "<tumor-smlv-vcf-remote-path>",
+        "tumor_sv_vcf": "<tumor-sv-vcf-remote-path>",
+        "output_dir": "<output-directory-remote-path>"
     }
     ```
 
@@ -61,7 +64,7 @@ def main(event, context):
     LOGGER.info(f'event: {json.dumps(event)}')
     LOGGER.info(f'context: {json.dumps(util.get_context_info(context))}')
 
-    event = liblambda.transpose_fn_url_event(event=event)
+    event = libumccr.aws.liblambda.transpose_fn_url_event(event=event)
 
     # Check inputs
     validate_event_data(event)
@@ -134,10 +137,10 @@ def validate_event_data(event):
         'job_name':                 {'required': False},
         'tumor_name':               {'required': True},
         'normal_name':              {'required': True},
-        'tumor_bam':                {'required': True,  's3_input': True, 'filetype': 'bam'},
-        'normal_bam':               {'required': True,  's3_input': True, 'filetype': 'bam'},
-        'tumor_smlv_vcf':           {'required': False, 's3_input': True, 'filetype': 'vcf'},
-        'tumor_sv_vcf':             {'required': False, 's3_input': True, 'filetype': 'vcf'},
+        'tumor_bam':                {'required': True,  'remote_input': True, 'filetype': 'bam'},
+        'normal_bam':               {'required': True,  'remote_input': True, 'filetype': 'bam'},
+        'tumor_smlv_vcf':           {'required': False, 'remote_input': True, 'filetype': 'vcf'},
+        'tumor_sv_vcf':             {'required': False, 'remote_input': True, 'filetype': 'vcf'},
         'output_dir':               {'required': True},
         'upload_nf_cache':          {'required': False},
         'docker_image_tag':         {'required': False},
@@ -201,24 +204,24 @@ def validate_event_data(event):
         return log_error_and_get_response(msg)
 
     # Check input files
-    s3_inputs = list()
+    remote_inputs = list()
     file_input_errors = {'bad_form': list(), 'bad_extension': list()}
-    for arg_s3_input in (arg for arg in arguments if arguments[arg].get('s3_input')):
-        if arg_s3_input not in event:
+    for arg_remote_input in (arg for arg in arguments if arguments[arg].get('remote_input')):
+        if arg_remote_input not in event:
             continue
         # S3 path
-        s3_path = event[arg_s3_input]
-        if not (re_result := match_s3_path(s3_path)):
-            file_input_errors['bad_form'].append((arg_s3_input, s3_path))
+        remote_path = event[arg_remote_input]
+        if not (re_result := util.match_remote_path(remote_path)):
+            file_input_errors['bad_form'].append((arg_remote_input, remote_path))
             continue
         # Filetype, extension
         filename = re_result['key_name']
-        filetype = arguments[arg_s3_input]['filetype']
+        filetype = arguments[arg_remote_input]['filetype']
         if not any(filename.endswith(fext) for fext in FILE_EXTENSIONS[filetype]):
-            file_input_errors['bad_extension'].append((arg_s3_input, s3_path))
+            file_input_errors['bad_extension'].append((arg_remote_input, remote_path))
             continue
         # Record for later use
-        s3_inputs.append((arg_s3_input, s3_path))
+        remote_inputs.append((arg_remote_input, remote_path))
     # Report errors
     msgs = list()
     for error_type, file_list in file_input_errors.items():
@@ -228,7 +231,7 @@ def validate_event_data(event):
         files_str = '\n\t'.join(files_strs)
         plurality = 'files' if len(file_list) > 1 else 'file'
         if error_type == 'bad_form':
-            msg = f'got malformed S3 path for {len(file_list)} {plurality}:\n\t{files_str}'
+            msg = f'got malformed remote path for {len(file_list)} {plurality}:\n\t{files_str}'
         elif error_type == 'bad_extension':
             msg = f'got bad file extension for {len(file_list)} {plurality}:\n\t{files_str}'
         else:
@@ -239,37 +242,27 @@ def validate_event_data(event):
 
     # Locate input files
     file_locate_errors = list()
-    for (arg_s3_input, s3_path) in s3_inputs:
-        # Run S3.Client.head_object via S3.Object.load
-        # From previous checks, can assume value is in 'event' and regex will be successful
-        s3_path_components = match_s3_path(s3_path)
-        check_s3_file_exists(
-            s3_path_components['bucket_name'],
-            s3_path_components['key'],
-            file_locate_errors,
-        )
+    for (arg_remote_input, remote_path) in remote_inputs:
+        check_remote_file_exists(remote_path, file_locate_errors)
         # Ensure BAMs are co-located with indexes
-        filetype = arguments[arg_s3_input]['filetype']
+        # From previous checks, can assume value is in 'event' and regex will be successful
+        filetype = arguments[arg_remote_input]['filetype']
         if filetype == 'bam':
-            s3_path_index = f'{s3_path_components["key"]}.bai'
-            check_s3_file_exists(
-                s3_path_components['bucket_name'],
-                s3_path_index,
-                file_locate_errors,
-            )
+            remote_index_path = f'{remote_path}.bai'
+            check_remote_file_exists(remote_index_path, file_locate_errors)
     # Report errors
     if file_locate_errors:
         plurality = 'files' if len(file_locate_errors) > 1 else 'file'
         files_strs = list()
-        for code, message, s3_path in file_locate_errors:
-            files_strs.append(f'{s3_path}: {message} ({code})')
+        for code, message, remote_path in file_locate_errors:
+            files_strs.append(f'{remote_path}: {message} ({code})')
         files_str = '\n\t'.join(files_strs)
         msg = f'failed to locate {len(file_locate_errors)} {plurality}:\n\t{files_str}'
         return log_error_and_get_response(msg)
 
     # Check output directory
-    if not (re_result := match_s3_path(event['output_dir'])):
-        msg = f'got malformed S3 path for \'output_dir\':\n\t\'{event["output_dir"]}\''
+    if not (re_result := util.match_remote_path(event['output_dir'])):
+        msg = f'got malformed remote path for \'output_dir\':\n\t\'{event["output_dir"]}\''
         return log_error_and_get_response(msg)
 
     # Ensure arguments that must be ints are actually ints, if provided
@@ -290,43 +283,31 @@ def validate_event_data(event):
         return log_error_and_get_response(msg)
 
 
-def match_s3_path(s3_path):
-    """Parse components of S3 path.
+def check_remote_file_exists(path, error_store):
+    """Determine if a GDS or S3 file exists.
 
-    :param str s3_path: S3 path
-    :returns: Regex match object containing parsed paths
-    :rtype: re.Match
-    """
-    s3_path_re_str = r'''
-        # Leading URI scheme name
-        ^s3://
-
-        # Bucket name
-        (?P<bucket_name>[^/]+)/
-
-        # Outer: match key
-        # Inner: match final component; filename or directory name
-        (?P<key>.*?(?P<key_name>[^/]+/?))$
-    '''
-    s3_path_re = re.compile(s3_path_re_str, re.VERBOSE)
-    return s3_path_re.match(s3_path)
-
-
-def check_s3_file_exists(bucket, key, error_store):
-    """Determine if an S3 path exists.
-
-    :param str bucket: S3 bucket
-    :param str key: S3 key
+    :param str path: Remote path
     :param list error_store: List of errors to report
     :returns: None
     :rtype: None
     """
-    s3_object = RESOURCE_S3.Object(bucket, key)
-    try:
-        s3_object.load()
-    except botocore.exceptions.ClientError as e:
-        error = e.response['Error']
-        error_store.append((error['Code'], error['Message'], f's://{bucket}/{key}'))
+    if path.startswith('gds://'):
+        gds_configuration = util.get_libica_gds_configuration()
+        with libica.openapi.libgds.ApiClient(gds_configuration) as api_client:
+            pcom = urllib.parse.urlparse(path)
+            files_api = libica.openapi.libgds.FilesApi(api_client)
+            resp_list_files = files_api.list_files(volume_name=[pcom.netloc], path=[pcom.path])
+            if resp_list_files.item_count != 1:
+                error_store.append(('na', 'File not found', path))
+    elif path.startswith('s3://'):
+        # Run S3.Client.head_object via S3.Object.load
+        s3_path_components = util.match_remote_path(path)
+        s3_object = RESOURCE_S3.Object(s3_path_components['bucket'], s3_path_components['key'])
+        try:
+            s3_object.load()
+        except botocore.exceptions.ClientError as e:
+            error = e.response['Error']
+            error_store.append((error['Code'], error['Message'], path))
 
 
 def get_job_definition_arn(docker_image_tag):

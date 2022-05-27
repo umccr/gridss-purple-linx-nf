@@ -34,5 +34,9 @@ RUN \
     cd /opt/gpl_pipeline/pipeline/ && \
     rm -rf .git/ .gitignore deployment/ *.md Dockerfile nextflow.config
 COPY assets/run_gpl.py /opt/gpl_pipeline/
+COPY lambdas/layers/util/ /tmp/util/
+RUN \
+  pip install --no-cache-dir /tmp/util/ && \
+  rm -r /tmp/util/
 
 ENV PATH="/opt/gpl_pipeline:${PATH}"

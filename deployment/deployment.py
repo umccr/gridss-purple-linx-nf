@@ -9,6 +9,7 @@ from aws_cdk import (
     aws_lambda as lmbda,
     aws_s3 as s3,
     aws_ssm as ssm,
+    aws_secretsmanager as secretsmanager,
     Stack,
     Duration,
     CfnOutput,
@@ -334,6 +335,15 @@ class GplStack(Stack):
             parameter_name='/gpl/create_linx_plot_lambda_fn_url',
             string_value=create_linx_plot_lambda_fn_url.url,
         )
+
+        # ICA secret
+        ica_credentials_secret = secretsmanager.Secret.from_secret_name_v2(
+            self,
+            'IcaCredentialsSecret',
+            'IcaSecretsPortal',
+        )
+        ica_credentials_secret.grant_read(submit_job_manual_lambda_role)
+        ica_credentials_secret.grant_read(batch_instance_role)
 
         # S3 output directory
         roles_s3_write_access = [

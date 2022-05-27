@@ -8,9 +8,14 @@ import re
 import subprocess
 import sys
 import textwrap
+import urllib
 
 
-import boto3
+import libica.openapi.libgds
+import libumccr.aws.libs3
+
+
+import util
 
 
 # Local input
@@ -27,50 +32,6 @@ WORK_DIR = NEXTFLOW_DIR / 'work/'
 # Logging
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
-
-
-# Repeated
-def get_client(service_name, region_name=None):
-    """Get boto3 client instance.
-
-    :param str name: Client type
-    :param str region_name: Name of region for service
-    :returns: boto3 client
-    :rtype: boto3.client.*
-    """
-    # pylint: disable=broad-except
-    try:
-        response = boto3.client(service_name, region_name=region_name)
-    except Exception as err:
-        LOGGER.critical(f'could not get AWS client for {service_name}:\n{err}')
-        sys.exit(1)
-    return response
-
-
-# Repeated
-def match_s3_path(s3_path):
-    """Parse components of S3 path.
-
-    :param str s3_path: S3 path
-    :returns: Regex match object containing parsed paths
-    :rtype: re.Match
-    """
-    s3_path_re_str = r'''
-        # Leading URI scheme name
-        ^s3://
-
-        # Bucket name
-        (?P<bucket_name>[^/]+)/
-
-        # Outer: match key
-        # Inner: match final component; filename or directory name
-        (?P<key>.*?(?P<key_name>[^/]+/?))$
-    '''
-    s3_path_re = re.compile(s3_path_re_str, re.VERBOSE)
-    return s3_path_re.match(s3_path)
-
-
-CLIENT_S3 = get_client('s3')
 
 
 def get_arguments():
@@ -130,7 +91,7 @@ def main():
     sample_data_local_paths = pull_sample_data(
         args.tumor_bam_fp, args.normal_bam_fp, args.tumor_smlv_vcf_fp, args.tumor_sv_vcf_fp
     )
-    execute_command(f'aws s3 sync {args.reference_data} {REFERENCE_LOCAL_DIR}')
+    execute_object_store_operation('sync', args.reference_data, REFERENCE_LOCAL_DIR.as_posix())
 
     # Create nextflow configuration file
     # Pack settings into dict for readability
@@ -193,18 +154,37 @@ def create_log_streams():
         LOGGER.addHandler(logger_handler)
 
 
-def get_vcf_header(vcf_s3_path):
-    """Stream in a VCF header from S3.
+def get_vcf_header(vcf_remote_path):
+    """Stream in a VCF header from S3 or GDS.
 
-    :param str vcf_s3_path: VCF S3 filepath
+    :param str vcf_remote_path: VCF remote filepath
     :returns: VCF header
     :rtype: list
     """
     # Get a file stream and chunk iterator for the VCF
-    s3_path_components = match_s3_path(vcf_s3_path)
-    response = CLIENT_S3.get_object(
-        Bucket=s3_path_components['bucket_name'],
-        Key=s3_path_components['key'],
+    if vcf_remote_path.startswith('gds://'):
+        # Initialise an authenticated S3 client
+        aws_credentials = get_aws_credentials_for_gds_file(vcf_remote_path)
+        s3_client = libumccr.aws.s3_client(
+            aws_access_key_id=aws_credentials.access_key_id,
+            aws_secret_access_key=aws_credentials.secret_access_key,
+            aws_session_token=aws_credentials.session_token,
+            region_name=aws_credentials.region,
+        )
+        # Set file S3 bucket and key prefix
+        bucket_name = aws_credentials.bucket_name
+        key_prefix = get_full_aws_key_prefix_for_gds_path(vcf_remote_path, aws_credentials.key_prefix)
+    elif vcf_remote_path.startswith('s3://'):
+        # Get S3 client and set file S3 bucket and key prefix
+        s3_client = libumccr.aws.s3_client()
+        remote_path_components = util.match_remote_path(vcf_remote_path)
+        bucket_name = remote_path_components['bucket']
+        key_prefix = remote_path_components['key']
+    else:
+        assert False
+    response = s3_client.get_object(
+        Bucket=bucket_name,
+        Key=key_prefix,
     )
     file_stream = response['Body']
     file_chunk_iter = file_stream.iter_chunks()
@@ -215,7 +195,7 @@ def get_vcf_header(vcf_s3_path):
         try:
             data_raw += next(file_chunk_iter)
         except StopIteration:
-            LOGGER.critical(f'Reached EOF for {vcf_s3_path} without finding header line')
+            LOGGER.critical(f'Reached EOF for {vcf_remote_path} without finding header line')
             sys.exit(1)
         try:
             data_lines = decompress_gzip_chunks(data_raw)
@@ -225,7 +205,7 @@ def get_vcf_header(vcf_s3_path):
             continue
         for i, line in enumerate(data_lines):
             if not line.startswith('#'):
-                LOGGER.critical(f'Moved past header in {vcf_s3_path} without finding header line')
+                LOGGER.critical(f'Moved past header in {vcf_remote_path} without finding header line')
                 sys.exit(1)
             elif line.startswith('#CHROM'):
                 header = data_lines[: i + 1]
@@ -317,7 +297,7 @@ def get_samples_from_vcf_header(vcf_header):
 def check_vcf_ad_field(vcf_fp, vcf_header):
     """Determine whether the VCF has the FORMAT/AD field defined.
 
-    :param str vcf_fp: VCF S3 filepath
+    :param str vcf_fp: VCF remote filepath
     :param list vcf_header: VCF header
     :returns: None
     :rtype: None
@@ -335,35 +315,148 @@ def check_vcf_ad_field(vcf_fp, vcf_header):
 def pull_sample_data(tumor_bam_fp, normal_bam_fp, tumor_smlv_vcf_fp, tumor_sv_vcf_fp):
     """Download sample data to local machine.
 
-    :param str tumor_bam_fp: Tumor BAM S3 filepath
-    :param str normal_bam_fp: Normal BAM S3 filepath
-    :param str tumor_smlv_vcf_fp: Tumor small variant VCF S3 filepath
-    :param str tumor_sv_vcf_fp: Tumor SV VCF S3 filepath
+    :param str tumor_bam_fp: Tumor BAM remote filepath
+    :param str normal_bam_fp: Normal BAM remote filepath
+    :param str tumor_smlv_vcf_fp: Tumor small variant VCF remote filepath
+    :param str tumor_sv_vcf_fp: Tumor SV VCF remote filepath
     :returns: Mapping of file identifier to local filepaths
     :rtype: dict
     """
     # Set files to pull; add BAM indexes (required for AMBER, COBALT, GRIDSS read extraction)
-    s3_paths = {
+    remote_paths = {
         'tumor_bam_fp': tumor_bam_fp,
         'normal_bam_fp': normal_bam_fp,
         'tumor_bam_index_fp': f'{tumor_bam_fp}.bai',
         'normal_bam_index_fp': f'{normal_bam_fp}.bai',
     }
     if tumor_smlv_vcf_fp:
-        s3_paths['tumor_smlv_vcf_fp'] = tumor_smlv_vcf_fp
+        remote_paths['tumor_smlv_vcf_fp'] = tumor_smlv_vcf_fp
     if tumor_sv_vcf_fp:
-        s3_paths['tumor_sv_vcf_fp'] = tumor_sv_vcf_fp
+        remote_paths['tumor_sv_vcf_fp'] = tumor_sv_vcf_fp
     # Download files
     local_paths = dict()
-    for input_type, s3_path in s3_paths.items():
-        s3_path_components = match_s3_path(s3_path)
-        local_path = SAMPLE_LOCAL_DIR / s3_path_components['key_name']
+    for input_type, remote_path in remote_paths.items():
+        remote_path_components = util.match_remote_path(remote_path)
+        local_path = SAMPLE_LOCAL_DIR / remote_path_components['key_name']
         local_paths[input_type] = local_path
-        execute_command(f'aws s3 cp {s3_path} {SAMPLE_LOCAL_DIR}/')
+        execute_object_store_operation('cp', remote_path, f'{SAMPLE_LOCAL_DIR}/')
     return local_paths
 
 
-def execute_command(command, ignore_errors=False):
+def execute_object_store_operation(op, src, dst):
+    """Run a GDS or S3 upload or download operation.
+
+    :param str op: Operation to perform; essentially arguments for 'aws s3'
+    :param str src: Source path
+    :param str dst: Destination path
+    :returns: Data of executed command, including standard streams
+    :rtype: subprocess.CompletedProcess
+    """
+    is_gds_src = src.startswith('gds://')
+    is_gds_dst = dst.startswith('gds://')
+    if is_gds_src and is_gds_dst:
+        msg = f'Both source ({src}) and destination ({dst}) are GDS paths, this operation is currently unsupported'
+        LOGGER.error(msg)
+        sys.exit(1)
+    elif is_gds_src:
+        src, env = prepare_aws_credentials_and_path(src)
+    elif is_gds_dst:
+        dst, env = prepare_aws_credentials_and_path(dst)
+    else:
+        env = None
+    return execute_command(f'aws s3 {op} {src} {dst}', env=env)
+
+
+def prepare_aws_credentials_and_path(path):
+    """Get AWS credentials for a GDS path and build a set of env var to use with the AWS cli.
+
+    :param str path: GDS path
+    :returns: S3 path to GDS object and AWS credentials as environment variables
+    :rtype: tuple[str, dict]
+    """
+    aws_credentials = get_aws_credentials_for_gds_file(path)
+    gds_prefix = get_full_aws_key_prefix_for_gds_path(path, aws_credentials.key_prefix)
+    env = {
+        'AWS_ACCESS_KEY_ID': aws_credentials.access_key_id,
+        'AWS_SECRET_ACCESS_KEY': aws_credentials.secret_access_key,
+        'AWS_SESSION_TOKEN': aws_credentials.session_token,
+        'AWS_DEFAULT_REGION': aws_credentials.region,
+    }
+    return f's3://{aws_credentials.bucket_name}/{gds_prefix}', env
+
+
+def get_full_aws_key_prefix_for_gds_path(gds_path, aws_cred_prefix):
+    """Attempt to safely construct AWS prefix for a GDS path.
+
+    When a target target on GDS does not exist, we must get credentials for the closest parent
+    directory. Doing so causes an mismatch in S3 prefix returned by the AWS credentials object and
+    the target prefix. The code below tries to safely construct the new S3 prefix.
+
+    :param str gds_path: GDS path
+    :param AwsS3TemporaryUploadCredentials aws_cred_prefix: AWS credentials
+    :returns: S3 prefix
+    :rtype: str
+    """
+    # The S3 prefix returned by AwsS3TemporaryUploadCredentials contains a leading UUID, which must
+    # be included in the final reconstructed S3 prefix.
+    # Obtain the overlap between the GDS path and S3 prefix provided by AwsS3TemporaryUploadCredentials
+    if not (re_result := re.match(r'^[0-9a-z-]+/?(.*)$', aws_cred_prefix)):
+        LOGGER.error(f'Failed to match GDS prefix {aws_cred_prefix}')
+        sys.exit(1)
+    prefix_shared = re_result.group(1)
+    # Subtract the GDS path and S3 prefix overlap and create final prefix
+    gds_path_components = util.match_remote_path(gds_path)
+    if not (re_result := re.match(fr'^{prefix_shared}(.*)$', gds_path_components['key'])):
+        msg = f'Failed to match GDS prefix {gds_path_components["key"]} with shared prefix {prefix_shared}'
+        LOGGER.error(msg)
+        sys.exit(1)
+    prefix_remaining = re_result.group(1)
+    return f'{aws_cred_prefix}{prefix_remaining}'
+
+
+def get_aws_credentials_for_gds_file(gds_path):
+    """Obtain AWS credentials for a given GDS path.
+
+    :param str gds_path: GDS path
+    :returns: AWS credentials
+    :rtype: AwsS3TemporaryUploadCredentials
+    """
+    # Obtain credentials and get GDS path components
+    gds_configuration = util.get_libica_gds_configuration()
+    pcom = urllib.parse.urlparse(gds_path)
+    # Input GDS path is a file, get parent folder
+    if not gds_path.endswith('/'):
+        assert not pcom.path.endswith('/')
+        path = pathlib.Path(pcom.path).parent
+    else:
+        assert pcom.path.endswith('/')
+        path = pcom.path
+    # Collect AWS credentials for GDS folder
+    with libica.openapi.libgds.ApiClient(gds_configuration) as api_client:
+        # Get GDS folder identifier, iterate up the key prefix until we find a directory that exists
+        folders_api = libica.openapi.libgds.FoldersApi(api_client)
+        path_dir = pathlib.Path(path)
+        while True:
+            path_dir_str = path_dir.as_posix()
+            if not path_dir_str.endswith('/'):
+                path_dir_str = f'{path_dir}/'
+            resp_list_folders = folders_api.list_folders(volume_name=[pcom.netloc], path=[path_dir_str])
+            # pylint: disable=no-else-break
+            if resp_list_folders.item_count != 0:
+                break
+            elif path_dir.as_posix() == '/':
+                LOGGER.error(f'Could not get credentials for any directory in path {gds_path}')
+                sys.exit(1)
+            else:
+                path_dir = path_dir.parent
+        assert resp_list_folders.item_count == 1
+        [folder_mdata] = resp_list_folders.items
+        # Retrieve AWS creds
+        resp_update_folder = folders_api.update_folder(folder_mdata.id, include='objectStoreAccess')
+        return resp_update_folder.object_store_access.aws_s3_temporary_upload_credentials
+
+
+def execute_command(command, env=None, ignore_errors=False):
     """Executes commands using subprocess and checks return code.
 
     :param str command: Command to execute
@@ -373,7 +466,9 @@ def execute_command(command, ignore_errors=False):
     """
     # pylint: disable=subprocess-run-check
     LOGGER.debug(f'executing: {command}')
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, encoding='utf-8')
+    result = subprocess.run(
+        command, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, encoding='utf-8'
+    )
     if result.returncode != 0:
         if ignore_errors:
             LOGGER.warning(f'Ignoring non-zero return code for command: {result.args}')
@@ -510,9 +605,9 @@ def get_config_misc():
 
 
 def upload_data_outputs(output_dir, upload_nf_cache):
-    """Upload run outputs to S3.
+    """Upload run outputs to remote object store.
 
-    :param str output_dir: Upload S3 filepath
+    :param str output_dir: Upload remote filepath
     :param bool upload_nf_cache: Flag used to enable upload of the Nextflow work cache
     :returns: None
     :rtype: None
@@ -520,7 +615,7 @@ def upload_data_outputs(output_dir, upload_nf_cache):
     # pylint: disable=too-many-branches
     # Upload main outputs
     LOGGER.info('uploading main outputs')
-    commands_failed = list()
+    tasks_failed = list()
     for path in OUTPUT_LOCAL_DIR.iterdir():
         if path == NEXTFLOW_DIR:
             continue
@@ -530,19 +625,18 @@ def upload_data_outputs(output_dir, upload_nf_cache):
             aws_s3_cmd = 'cp'
         s3_output_subdir = str(path).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
         s3_output_dir = f'{output_dir}{s3_output_subdir}'
-        command = f'aws s3 {aws_s3_cmd} {path} {s3_output_dir}'
-        result = execute_command(command, ignore_errors=True)
+        result = execute_object_store_operation(aws_s3_cmd, path.as_posix(), s3_output_dir)
         if result.returncode != 0:
-            commands_failed.append(command)
+            tasks_failed.append(f'upload of {path}')
     # Upload the Nextflow directory, excluding work directory (i.e. NF cache)
     if NEXTFLOW_DIR.exists():
         LOGGER.info('uploading Nextflow directory (excluding work directory)')
         s3_output_subdir = str(NEXTFLOW_DIR).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
         s3_output_dir = f'{output_dir}{s3_output_subdir}'
-        command = f'aws s3 sync --exclude=\'*{WORK_DIR.name}/*\' {NEXTFLOW_DIR} {s3_output_dir}'
-        result = execute_command(command, ignore_errors=True)
+        aws_s3_cmd = 'sync --exclude=\'*{WORK_DIR.name}/*\''
+        result = execute_object_store_operation(aws_s3_cmd, NEXTFLOW_DIR.as_posix(), s3_output_dir)
         if result.returncode != 0:
-            commands_failed.append(command)
+            tasks_failed.append(f'upload of {NEXTFLOW_DIR} (without cache)')
     else:
         LOGGER.info(f'Nextflow directory \'{NEXTFLOW_DIR}\' does not exist, skipping')
     # Finally upload the work directory if required
@@ -551,17 +645,16 @@ def upload_data_outputs(output_dir, upload_nf_cache):
             LOGGER.info('uploading Nextflow work directory')
             s3_output_subdir = str(WORK_DIR).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
             s3_output_dir = f'{output_dir}{s3_output_subdir}'
-            command = f'aws s3 sync --no-follow-symlinks {WORK_DIR} {s3_output_dir}'
-            result = execute_command(command, ignore_errors=True)
+            result = execute_object_store_operation(aws_s3_cmd, NEXTFLOW_DIR, s3_output_dir)
             if result.returncode != 0:
-                commands_failed.append(command)
+                tasks_failed.append(f'upload of {NEXTFLOW_DIR} (without cache)')
         else:
             LOGGER.info(f'Nextflow work directory \'{WORK_DIR}\' does not exist, skipping')
     # Check for upload failures
-    if commands_failed:
-        plurality = 'uploads' if len(commands_failed) > 1 else 'upload'
-        commands = '\n\t'.join(commands_failed)
-        LOGGER.critical(f'Failed to complete {plurality} for:\n\t{commands}')
+    if tasks_failed:
+        plurality = 'tasks' if len(tasks_failed) > 1 else 'task'
+        tasks = '\n\t'.join(tasks_failed)
+        LOGGER.critical(f'Failed to complete {plurality}:\n\t{tasks}')
         sys.exit(1)
 
 
