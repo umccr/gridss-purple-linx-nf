@@ -86,10 +86,10 @@ docker push ${AWS_PROVIDER_URL}/gpl-nf:${VERSION}
 
 ```bash
 for dir in $(find $(pwd -P)/lambdas/layers/ -maxdepth 1 -mindepth 1 -type d); do
-  rm -r ${dir}/build/;
+  rm -r ${dir}/build/ 2>/dev/null;
   docker run --rm -v ${dir}:/local/ -w /local/ public.ecr.aws/sam/build-python3.8 \
     pip install -r requirements.txt -t ./build/package/python/;
-  (cd ${dir}/build/package/; zip ../python38-${dir##*/}.zip $(find . -type f ! -path '*__pycache__*'));
+  (cd ${dir}/build/package/; zip -r ../python38-${dir##*/}.zip . --exclude '*__pycache__*');
 done
 ```
 
