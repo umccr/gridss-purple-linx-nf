@@ -633,7 +633,7 @@ def upload_data_outputs(output_dir, upload_nf_cache):
         LOGGER.info('uploading Nextflow directory (excluding work directory)')
         s3_output_subdir = str(NEXTFLOW_DIR).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
         s3_output_dir = f'{output_dir}{s3_output_subdir}'
-        aws_s3_cmd = 'sync --exclude=\'*{WORK_DIR.name}/*\''
+        aws_s3_cmd = f'sync --exclude=\'*{WORK_DIR.name}/*\''
         result = execute_object_store_operation(aws_s3_cmd, NEXTFLOW_DIR.as_posix(), s3_output_dir)
         if result.returncode != 0:
             tasks_failed.append(f'upload of {NEXTFLOW_DIR} (without cache)')
@@ -645,9 +645,10 @@ def upload_data_outputs(output_dir, upload_nf_cache):
             LOGGER.info('uploading Nextflow work directory')
             s3_output_subdir = str(WORK_DIR).replace(str(OUTPUT_LOCAL_DIR), '').lstrip('/')
             s3_output_dir = f'{output_dir}{s3_output_subdir}'
-            result = execute_object_store_operation(aws_s3_cmd, NEXTFLOW_DIR, s3_output_dir)
+            aws_s3_cmd = 'sync --no-follow-symlinks'
+            result = execute_object_store_operation(aws_s3_cmd, WORK_DIR.as_posix(), s3_output_dir)
             if result.returncode != 0:
-                tasks_failed.append(f'upload of {NEXTFLOW_DIR} (without cache)')
+                tasks_failed.append(f'upload of Nextflow work directory \'{WORK_DIR}\'')
         else:
             LOGGER.info(f'Nextflow work directory \'{WORK_DIR}\' does not exist, skipping')
     # Check for upload failures
