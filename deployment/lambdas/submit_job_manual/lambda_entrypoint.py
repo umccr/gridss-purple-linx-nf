@@ -308,7 +308,7 @@ def check_remote_file_exists(path, error_store):
     elif path.startswith('s3://'):
         # Run S3.Client.head_object via S3.Object.load
         s3_path_components = util.match_remote_path(path)
-        s3_object = RESOURCE_S3.Object(s3_path_components['bucket'], s3_path_components['key'])
+        s3_object = RESOURCE_S3.Object(s3_path_components['bucket_name'], s3_path_components['key'])
         try:
             s3_object.load()
         except botocore.exceptions.ClientError as e:

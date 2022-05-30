@@ -178,7 +178,7 @@ def get_vcf_header(vcf_remote_path):
         # Get S3 client and set file S3 bucket and key prefix
         s3_client = libumccr.aws.s3_client()
         remote_path_components = util.match_remote_path(vcf_remote_path)
-        bucket_name = remote_path_components['bucket']
+        bucket_name = remote_path_components['bucket_name']
         key_prefix = remote_path_components['key']
     else:
         assert False
