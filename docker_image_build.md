@@ -1,7 +1,7 @@
 # Docker image build instructions
 
 ```bash
-VERSION=0.1.13
+VERSION=0.1.14
 HUB_PROVIDER_URL=docker.io/scwatts
 NAMES="gridss_deps gridss gpl"
 # Build
