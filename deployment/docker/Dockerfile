@@ -17,7 +17,7 @@ RUN \
     'bcftools ==1.14' \
     boto3 \
     nextflow \
-    r-gpgr \
+    'r-gpgr ==1.3.1' \
     unzip && \
   mamba clean --all --force-pkgs-dirs --yes
 
