@@ -37,7 +37,8 @@ The stack has some software requirements for deploy:
 ### Create virtual environment
 
 ```bash
-python3 -m venv .venv/
+python3 -m venv ./venv/
+. ./venv/bin/activate
 pip install -r requirements.txt
 ```
 
