@@ -91,7 +91,8 @@ def main():
     sample_data_local_paths = pull_sample_data(
         args.tumor_bam_fp, args.normal_bam_fp, args.tumor_smlv_vcf_fp, args.tumor_sv_vcf_fp
     )
-    execute_object_store_operation('sync', args.reference_data, REFERENCE_LOCAL_DIR.as_posix())
+    ref_data_sync_args = '--exclude=\'*37*\' --exclude=\'*genome/Homo_sapiens*\''
+    execute_object_store_operation(f'sync {ref_data_sync_args}', args.reference_data, REFERENCE_LOCAL_DIR.as_posix())
 
     # Create nextflow configuration file
     # Pack settings into dict for readability
