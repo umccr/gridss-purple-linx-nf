@@ -342,15 +342,16 @@ class GplStack(Stack):
         ica_credentials_secret.grant_read(submit_job_manual_lambda_role)
         ica_credentials_secret.grant_read(batch_instance_role)
 
-        # S3 output directory
+        # Grant wr on requested buckets
         roles_s3_write_access = [
             batch_instance_role,
             create_linx_plot_lambda_role,
         ]
-        output_bucket = s3.Bucket.from_bucket_name(
-            self,
-            'OutputBucket',
-            bucket_name=props['output_bucket'],
-        )
-        for role in roles_s3_write_access:
-            output_bucket.grant_put(role, '*/gridss_purple_linx/*')
+        for bucket_name in props.get('buckets_rw', list()):
+            bucket = s3.Bucket.from_bucket_name(
+                self,
+                f'Bucket_{bucket_name}',
+                bucket_name=bucket_name,
+            )
+            for role in roles_s3_write_access:
+                bucket.grant_put(role)
