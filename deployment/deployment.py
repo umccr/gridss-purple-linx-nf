@@ -291,47 +291,48 @@ class GplStack(Stack):
             string_value=submit_job_lambda_fn_url.url,
         )
 
+        # NOTE(SW): not currently integrated with GDS inputs
         # Lambda function: create LINX plots
-        create_linx_plot_lambda_role = iam.Role(
-            self,
-            'CreateLinxPlotLambdaRole',
-            assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
-            managed_policies=[
-                iam.ManagedPolicy.from_aws_managed_policy_name('AmazonS3ReadOnlyAccess'),
-                iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
-            ],
-        )
+        # create_linx_plot_lambda_role = iam.Role(
+        #   self,
+        #   'CreateLinxPlotLambdaRole',
+        #   assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
+        #   managed_policies=[
+        #       iam.ManagedPolicy.from_aws_managed_policy_name('AmazonS3ReadOnlyAccess'),
+        #       iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
+        #   ],
+        # )
 
-        create_linx_plot_docker_image = lmbda.Code.from_asset_image(
-            directory='./',
-            file='docker/Dockerfile.create_linx_plot_lambda',
-        )
+        # create_linx_plot_docker_image = lmbda.Code.from_asset_image(
+        #   directory='./',
+        #   file='docker/Dockerfile.create_linx_plot_lambda',
+        # )
 
-        create_linx_plot_lambda = lmbda.Function(
-            self,
-            'CreateLinxPlotLambda',
-            function_name=f'{props["namespace"]}_create_linx_plot',
-            code=create_linx_plot_docker_image,
-            handler=lmbda.Handler.FROM_IMAGE,
-            runtime=lmbda.Runtime.FROM_IMAGE,
-            timeout=Duration.minutes(10),
-            memory_size=5120,
-            environment={
-                'OUTPUT_BUCKET': props['output_bucket'],
-                'REFERENCE_DATA': props['reference_data'],
-            },
-            role=create_linx_plot_lambda_role,
-        )
-        create_linx_plot_lambda_fn_url = create_linx_plot_lambda.add_function_url(
-            auth_type=fn_url_auth_type, cors=fn_url_cors_options
-        )
-        CfnOutput(self, 'CreateLinxPlotLambdaUrl', value=create_linx_plot_lambda_fn_url.url)
-        ssm.StringParameter(
-            self,
-            'CreateLinxPlotLambdaUrlSSM',
-            parameter_name='/gpl/create_linx_plot_lambda_fn_url',
-            string_value=create_linx_plot_lambda_fn_url.url,
-        )
+        # create_linx_plot_lambda = lmbda.Function(
+        #   self,
+        #   'CreateLinxPlotLambda',
+        #   function_name=f'{props["namespace"]}_create_linx_plot',
+        #   code=create_linx_plot_docker_image,
+        #   handler=lmbda.Handler.FROM_IMAGE,
+        #   runtime=lmbda.Runtime.FROM_IMAGE,
+        #   timeout=Duration.minutes(10),
+        #   memory_size=5120,
+        #   environment={
+        #       'OUTPUT_VOLUME': props['output_volume'],
+        #       'REFERENCE_DATA': props['reference_data'],
+        #   },
+        #   role=create_linx_plot_lambda_role,
+        # )
+        # create_linx_plot_lambda_fn_url = create_linx_plot_lambda.add_function_url(
+        #   auth_type=fn_url_auth_type, cors=fn_url_cors_options
+        # )
+        # CfnOutput(self, 'CreateLinxPlotLambdaUrl', value=create_linx_plot_lambda_fn_url.url)
+        # ssm.StringParameter(
+        #   self,
+        #   'CreateLinxPlotLambdaUrlSSM',
+        #   parameter_name='/gpl/create_linx_plot_lambda_fn_url',
+        #   string_value=create_linx_plot_lambda_fn_url.url,
+        # )
 
         # ICA secret
         ica_credentials_secret = secretsmanager.Secret.from_secret_name_v2(
@@ -345,7 +346,7 @@ class GplStack(Stack):
         # Grant wr on requested buckets
         roles_s3_write_access = [
             batch_instance_role,
-            create_linx_plot_lambda_role,
+            # create_linx_plot_lambda_role,
         ]
         for bucket_name in props.get('buckets_rw', list()):
             bucket = s3.Bucket.from_bucket_name(
