@@ -3,13 +3,13 @@
   "context": {
     "dev": {
       "container_image": "843407916570.dkr.ecr.ap-southeast-2.amazonaws.com/gpl-nf:0.1.15",
-      "output_bucket": "umccr-primary-data-dev",
+      "output_volume": "development",
       "reference_data": "s3://umccr-refdata-dev/gpl-nf/",
       "portal_api_base_url": "https://api.data.dev.umccr.org"
     },
     "prod": {
       "container_image": "843407916570.dkr.ecr.ap-southeast-2.amazonaws.com/gpl-nf:0.1.15",
-      "output_bucket": "umccr-primary-data-prod",
+      "output_volume": "production",
       "reference_data": "s3://umccr-refdata-prod/gpl-nf/",
       "portal_api_base_url": "https://api.data.prod.umccr.org"
     }

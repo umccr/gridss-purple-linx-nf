@@ -22,7 +22,7 @@ CLIENT_BATCH = libumccr.aws.client('batch')
 
 PORTAL_API_BASE_URL = os.environ['PORTAL_API_BASE_URL']
 SUBMISSION_LAMBDA_ARN = os.environ['SUBMISSION_LAMBDA_ARN']
-OUTPUT_BUCKET = os.environ['OUTPUT_BUCKET']
+OUTPUT_VOLUME = os.environ['OUTPUT_VOLUME']
 BATCH_QUEUE_NAME = os.environ['BATCH_QUEUE_NAME']
 
 
@@ -340,7 +340,7 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
     :rtype: dict
     """
     # Get input file paths
-    # NOTE(SW): the `/iam/s3` endpoint does not currently allow certain special characters (e.g.
+    # NOTE(SW): the `/iam/gds` endpoint does not currently allow certain special characters (e.g.
     # '$' and '+') in the pattern string. So we must retrieve a list of all BAMs and VCFs from the
     # data portal for the subject and then manually collect the desired file with regex.
     file_list_all = [
@@ -349,16 +349,17 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
     ]
     # Select files that are in the latest 'date directory' for the selected tumor/normal
     # sample - multiple directories are present when bcbio analyses are re-run
-    date_directory = get_date_directory(file_list_all, tumor_sample_md['sample_id'], subject_id)
+    date_directory = get_date_directory(file_list_all, tumor_sample_md['sample_id'])
     file_list = [fp for fp in file_list_all if fp.startswith(date_directory)]
     # Collect the required inputs from the filtered file list
-    tumor_bam = get_file_path(get_bam_pattern(tumor_sample_md), file_list)
-    normal_bam = get_file_path(get_bam_pattern(normal_sample_md), file_list)
-    tumor_smlv_vcf = get_file_path(fr'^.+{subject_id}-[^-]+-annotated.vcf.gz$', file_list)
-    tumor_sv_vcf = get_file_path(fr'^.+{subject_id}-manta.vcf.gz$', file_list)
+    tumor_id = tumor_sample_md['sample_id']
+    tumor_bam = get_file_path(fr'^.+{tumor_id}_tumor.bam$', file_list)
+    normal_bam = get_file_path(fr'^.+{normal_sample_md["sample_id"]}_normal.bam$', file_list)
+    tumor_smlv_vcf = get_file_path(fr'^.+{tumor_id}.hard-filtered.vcf.gz$', file_list)
+    tumor_sv_vcf = get_file_path(fr'^.+{tumor_id}.sv.vcf.gz$', file_list)
 
     # Set output directory using tumor BAM path
-    if not (re_result := re.match(r'^s3://[^/]+/(.+?)/final/.+$', tumor_bam)):
+    if not (re_result := re.match(r'^gds://[^/]+/(.+)/.+?_dragen/[^/]+$', tumor_bam)):
         msg = (
             f'found non-standard input directory for tumor BAM ({tumor_bam}), refusing to guess'
             f' output directory please use manual submission'
@@ -366,36 +367,26 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
         LOGGER.critical(msg)
         raise ValueError(msg)
     output_prefix_base = re_result.group(1)
-    if not re.match('^.+/[0-9]{4}-[0-9]{2}-[0-9]{2}$', output_prefix_base):
+    if not re.match('^.+/20[0-9]{2}[0-9]{2}[0-9]{2}[a-z0-9]{8}$', output_prefix_base):
         msg = (
             f'could not obtain an appropriate output directory base from the tumor BAM ({tumor_bam}),'
-            f' expected a \'date\' directory (YYYY-MM-DD) but got {output_prefix_base}'
+            f' expected a \'date\' directory (YYYYMMDDH{8}) but got {output_prefix_base}'
         )
         LOGGER.critical(msg)
         raise ValueError(msg)
-    output_dir = f's3://{OUTPUT_BUCKET}/{output_prefix_base}/gridss_purple_linx/'
+    output_dir = f'gds://{OUTPUT_VOLUME}/{output_prefix_base}/gridss_purple_linx/'
 
     # Create and return submission data dict
     return {
         'job_name': f'gpl_{tumor_sample_md["project_owner"]}-{tumor_sample_md["project_name"]}_{subject_id}',
-        'tumor_name': f'{subject_id}_{tumor_sample_md["sample_id"]}_{tumor_sample_md["library_id"]}',
-        'normal_name': f'{subject_id}_{normal_sample_md["sample_id"]}_{normal_sample_md["library_id"]}',
+        'tumor_name': f'{tumor_id}',
+        'normal_name': f'{normal_sample_md["sample_id"]}',
         'tumor_bam': tumor_bam,
         'normal_bam': normal_bam,
         'tumor_smlv_vcf': tumor_smlv_vcf,
         'tumor_sv_vcf': tumor_sv_vcf,
         'output_dir': output_dir,
     }
-
-
-def get_bam_pattern(md):
-    """Construct regex for input BAM filepath.
-
-    :params dict md: Sample metadata
-    :returns: BAM regex
-    :rtype: str
-    """
-    return fr'^.+/{md["subject_id"]}_{md["sample_id"]}_{md["library_id"]}-ready.bam$'
 
 
 def get_subject_files(subject_id, pattern, api_auth):
@@ -407,35 +398,37 @@ def get_subject_files(subject_id, pattern, api_auth):
     :returns: Filepaths associated with the given subject
     :rtype: list
     """
-    entries_all = make_api_get_call(f's3?subject={subject_id}&search={pattern}&rowsPerPage=1000', api_auth)
+    entries_all = make_api_get_call(f'gds?subject={subject_id}&search={pattern}&rowsPerPage=1000', api_auth)
     filepaths = list()
     for entry in entries_all:
-        filepaths.append(f's3://{entry["bucket"]}/{entry["key"]}')
+        filepaths.append(f'gds://{entry["volume_name"]}{entry["path"]}')
     return filepaths
 
 
-def get_date_directory(file_list, sample_id, subject_id):
+def get_date_directory(file_list, sample_id):
     """Determine root path of the latest so called 'date directory'.
 
     :params list file_list: Subject file list
     :params list sample_id: Sample identifier
-    :params list subject_id: Subject identifier
     :returns: Date directory root path
     :rtype: str
     """
     # Collect all date directories
     date_dir_regex_str = fr'''
         # Leading URI scheme name
-        ^(s3://
+        ^(gds://
 
-        # Require WGS to be present in the path, i.e. exclude WTS analyses
-        .+/WGS/
+        # Require wgs_tumor_normal to be present in the path, i.e. exclude WTS analyses
+        .+/wgs_tumor_normal/
 
         # Date component; double curled braces required for f-string
-        (20[0-9]{{2}}-[0-9]{{2}}-[0-9]{{2}})/)
+        (20[0-9]{{2}}[0-9]{{2}}[0-9]{{2}}))
+
+        # Hash trailing date component
+        [a-z0-9]{{8}}/
 
         # Only select for requested tumor BAM
-        .+/{subject_id}_{sample_id}.+-ready.bam$
+        .+/{sample_id}_(?:tumor|normal)\.bam$
     '''
     date_dir_regex = re.compile(date_dir_regex_str, re.VERBOSE)
     date_dirs = dict()

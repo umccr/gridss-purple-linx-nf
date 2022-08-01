@@ -270,7 +270,7 @@ class GplStack(Stack):
             environment={
                 'PORTAL_API_BASE_URL': props['portal_api_base_url'],
                 'SUBMISSION_LAMBDA_ARN': submit_job_manual_lambda.function_arn,
-                'OUTPUT_BUCKET': props['output_bucket'],
+                'OUTPUT_VOLUME': props['output_volume'],
                 'BATCH_QUEUE_NAME': props['batch_queue_name'],
             },
             role=submit_job_lambda_role,
