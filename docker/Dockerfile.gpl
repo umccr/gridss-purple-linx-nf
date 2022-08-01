@@ -8,7 +8,7 @@ RUN \
     cobalt-v1.11/cobalt-1.11.jar \
     gripss-v2.0/gripss.jar \
     purple-v3.3/purple.jar \
-    linx-v1.20_beta/linx_v1.20_beta.jar
+    linx-v1.20/linx_v1.20.jar
 
 RUN \
   mamba install -y \

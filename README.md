@@ -102,7 +102,7 @@ Assumes the pipeline will be executed using the provided Docker image
 * [GRIDSS](https://github.com/PapenfussLab/gridss) (v2.13.2)
 * [GRIPSS](https://github.com/hartwigmedical/hmftools/blob/master/gripss/) (v2.0)
 * [PURPLE](https://github.com/hartwigmedical/hmftools/blob/master/purple/) (v3.3)
-* [LINX](https://github.com/hartwigmedical/hmftools/blob/master/linx/) (v1.20_beta)
+* [LINX](https://github.com/hartwigmedical/hmftools/blob/master/linx/) (v1.20)
 
 ## Reference data
 
