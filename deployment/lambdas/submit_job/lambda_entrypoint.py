@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
+import datetime
 import json
 import logging
 import os
 import re
 import urllib.parse
+import uuid
 
 
 import requests
@@ -359,7 +361,7 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
     tumor_sv_vcf = get_file_path(fr'^.+{tumor_id}.sv.vcf.gz$', file_list)
 
     # Set output directory using tumor BAM path
-    if not (re_result := re.match(r'^gds://[^/]+/(.+)/.+?_dragen/[^/]+$', tumor_bam)):
+    if not (re_result := re.match(r'^gds://[^/]+/(.+)/wgs_tumor_normal/.+\.bam$', tumor_bam)):
         msg = (
             f'found non-standard input directory for tumor BAM ({tumor_bam}), refusing to guess'
             f' output directory please use manual submission'
@@ -367,14 +369,15 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
         LOGGER.critical(msg)
         raise ValueError(msg)
     output_prefix_base = re_result.group(1)
-    if not re.match('^.+/20[0-9]{2}[0-9]{2}[0-9]{2}[a-z0-9]{8}$', output_prefix_base):
+    if not re.match('^.+/SBJ[0-9]+$', output_prefix_base):
         msg = (
             f'could not obtain an appropriate output directory base from the tumor BAM ({tumor_bam}),'
-            f' expected a \'date\' directory (YYYYMMDDH{8}) but got {output_prefix_base}'
+            f' expected a \'subject\' directory (SBJ[0-9]{{8}}) but got {output_prefix_base}'
         )
         LOGGER.critical(msg)
         raise ValueError(msg)
-    output_dir = f'gds://{OUTPUT_VOLUME}/{output_prefix_base}/gridss_purple_linx/'
+    output_date_dirname = generate_output_date_directory_name()
+    output_dir = f'gds://{OUTPUT_VOLUME}/{output_prefix_base}/gridss_purple_linx/{output_date_dirname}/'
 
     # Create and return submission data dict
     return {
@@ -463,3 +466,18 @@ def get_date_directory(file_list, sample_id):
     date_dir = date_dirs[sorted(date_dirs).pop()]
     LOGGER.info(f'Using \'date directory\' {date_dir}')
     return date_dir
+
+
+def generate_output_date_directory_name():
+    """Generate a unique output date directory name.
+
+    Follows the approach used in data-portal-apis:
+
+    https://github.com/umccr/data-portal-apis/blob/156858d/data_processors/pipeline/domain/workflow.py#L80-L81
+
+    :returns: Date directory name
+    :rtype: str
+    """
+    datetime_str = datetime.datetime.utcnow().strftime('%Y%m%d')
+    hash_str = uuid.uuid4().hex[:8]
+    return f'{datetime_str}{hash_str}'
