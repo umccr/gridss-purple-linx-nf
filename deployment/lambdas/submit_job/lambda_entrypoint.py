@@ -445,7 +445,11 @@ def get_date_directory(file_list, sample_id):
         date_dirpath = re_result.group(1)
         date_str = re_result.group(2)
         if date_str in date_dirs:
-            assert date_dirs[date_str] == date_dirpath
+            if date_dirs[date_str] != date_dirpath:
+                dirs_str = f'\n\t{date_dirs[date_str]}\n\t{date_dirpath}'
+                msg = f'Found multiple output directories, refusing to run:{dirs_str}'
+                LOGGER.error(msg)
+                raise ValueError(msg)
         else:
             date_dirs[date_str] = date_dirpath
     # Get the latest date directory if there are multiple
