@@ -392,6 +392,11 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
 def get_subject_files(subject_id, pattern, api_auth):
     """Get a list of files associated with a subject.
 
+    File discovery is restricted to the target output volume i.e. production or development. This
+    prevents reading inputs from one account and attempting to write outputs to another, and
+    implicitly enforces use of development or production inputs when running in the corresponding
+    account.
+
     :params str subject_id: Subject identifier
     :params str pattern: Regular expression
     :params aws_requests_auth.boto_utils.BotoAWSRequestsAuth api_auth: API auth object
@@ -401,6 +406,8 @@ def get_subject_files(subject_id, pattern, api_auth):
     entries_all = make_api_get_call(f'gds?subject={subject_id}&search={pattern}&rowsPerPage=1000', api_auth)
     filepaths = list()
     for entry in entries_all:
+        if entry['volume_name'] != OUTPUT_VOLUME:
+            continue
         filepaths.append(f'gds://{entry["volume_name"]}{entry["path"]}')
     return filepaths
 
