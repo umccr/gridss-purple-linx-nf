@@ -264,10 +264,12 @@ def get_samples_from_subject_metadata(subject_md_all, subject_id):
     :returns: Tumor and normal sample metadata
     :rtype: tuple
     """
-    # First separate topup runs from non-topup runs
+    # First exclude all non-WGS runs and separate topup runs from non-topup runs
     sample_md = list()
     sample_md_topup = list()
     for entry in subject_md_all:
+        if entry['type'] != 'WGS':
+            continue
         if entry['library_id'].endswith('_topup'):
             sample_md_topup.append(entry)
         else:
@@ -275,8 +277,6 @@ def get_samples_from_subject_metadata(subject_md_all, subject_id):
     # Process non-topup runs
     subject_md = dict()
     for entry in sample_md:
-        if entry['type'] != 'WGS':
-            continue
         if entry['sample_id'] in subject_md:
             msg = f'Got multiple metadata entries for \'{entry["sample_id"]}\''
             LOGGER.critical(msg)
