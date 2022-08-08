@@ -361,13 +361,15 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
     tumor_sv_vcf = get_file_path(fr'^.+{tumor_id}.sv.vcf.gz$', file_list)
 
     # Set output directory using tumor BAM path
-    if not (re_result := re.match(r'^gds://[^/]+/(.+)/wgs_tumor_normal/.+\.bam$', tumor_bam)):
+    outdir_regex = re.compile(r'^gds://[^/]+/(.+)/wgs_tumor_normal/.+/(L\d+)_(L\d+)_dragen/.+?\.bam$')
+    if not (re_result := outdir_regex.match(tumor_bam)):
         msg = (
             f'found non-standard input directory for tumor BAM ({tumor_bam}), refusing to guess'
             f' output directory please use manual submission'
         )
         LOGGER.critical(msg)
         raise ValueError(msg)
+
     output_prefix_base = re_result.group(1)
     if not re.match('^.+/SBJ[0-9]+$', output_prefix_base):
         msg = (
@@ -377,7 +379,12 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
         LOGGER.critical(msg)
         raise ValueError(msg)
     output_date_dirname = generate_output_date_directory_name()
-    output_dir = f'gds://{OUTPUT_VOLUME}/{output_prefix_base}/gridss_purple_linx/{output_date_dirname}/'
+
+    tumor_lane = re_result.group(2)
+    normal_lane = re_result.group(3)
+
+    output_dir_base = f'gds://{OUTPUT_VOLUME}/{output_prefix_base}/gridss_purple_linx'
+    output_dir = f'{output_dir_base}/{output_date_dirname}/{tumor_lane}__{normal_lane}/'
 
     # Create and return submission data dict
     return {
