@@ -18,7 +18,12 @@ RUN \
     boto3 \
     nextflow \
     'r-gpgr ==1.3.1' \
-    unzip && \
+    unzip \
+    # NOTE(SW): at the time of 20230306, r-gpgr v1.3.1 requires setting r-cli >=3.4.0,
+    # r-lifecycle >= 1.0.3, and r-rmarkdown ==2.14
+    'r-cli >=3.4.0' \
+    'r-lifecycle >=1.0.3' \
+    'r-rmarkdown ==2.14' && \
   mamba clean --all --force-pkgs-dirs --yes
 
 # Install AWS CLI v2, appears to only be available through direct download
