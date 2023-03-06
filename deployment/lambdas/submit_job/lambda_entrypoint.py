@@ -235,7 +235,7 @@ def make_api_get_call(endpoint, auth):
     """
     url = f'{PORTAL_API_BASE_URL}/iam/{endpoint}'
     LOGGER.debug(f'GET request to {url}')
-    req_raw = requests.get(url, auth=auth)
+    req_raw = requests.get(url, auth=auth, timeout=60)
     req = req_raw.json()
     LOGGER.debug(f'recieved {req} from {url}')
     # Check we have results
