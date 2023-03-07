@@ -205,7 +205,7 @@ def get_sample_metadata(sample_id, api_auth):
     :rtype: dict
     """
     LOGGER.info(f'getting sample metadata for {sample_id}')
-    md_entries = make_api_get_call(f'metadata?sample_id={sample_id}', api_auth)
+    md_entries = make_api_get_call(f'metadata?sample_id={sample_id}&sequenced', api_auth)
     if len(md_entries) != 1:
         msg = f'found more than one entry for {sample_id}'
         LOGGER.critical(msg)
@@ -222,7 +222,7 @@ def get_subject_metadata(subject_id, api_auth):
     :rtype: list
     """
     LOGGER.info(f'getting subject metadata for {subject_id}')
-    return make_api_get_call(f'metadata?subject_id={subject_id}', api_auth)
+    return make_api_get_call(f'metadata?subject_id={subject_id}&sequenced', api_auth)
 
 
 def make_api_get_call(endpoint, auth):
@@ -235,7 +235,7 @@ def make_api_get_call(endpoint, auth):
     """
     url = f'{PORTAL_API_BASE_URL}/iam/{endpoint}'
     LOGGER.debug(f'GET request to {url}')
-    req_raw = requests.get(url, auth=auth)
+    req_raw = requests.get(url, auth=auth, timeout=60)
     req = req_raw.json()
     LOGGER.debug(f'recieved {req} from {url}')
     # Check we have results

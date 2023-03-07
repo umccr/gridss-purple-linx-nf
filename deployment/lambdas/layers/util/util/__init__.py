@@ -1,12 +1,12 @@
+import base64
+import datetime
+import json
 import logging
 import re
 
 
 import libica.openapi.libgds
 import libumccr.aws.libsm
-
-
-ICA_ACCESS_TOKEN = None
 
 
 LOGGER = logging.getLogger(__name__)
@@ -61,12 +61,30 @@ def get_libica_gds_configuration():
     :rtype: libica.openapi.libgds.Configuration
     """
     # pylint: disable=global-statement
-    # Cache ICA access token to reduce number of AWS Secrets API calls
-    global ICA_ACCESS_TOKEN
-    if not ICA_ACCESS_TOKEN:
-        ICA_ACCESS_TOKEN = libumccr.aws.libsm.get_secret('IcaSecretsPortal')
+    # The libumccr.aws.libsm.get_secret function result is cached and must be cleared if the JWT
+    # token has expired in order to obtain a new valid token
+    ica_access_token = libumccr.aws.libsm.get_secret('IcaSecretsPortal')
+    if time_until_token_expiry(ica_access_token) <= datetime.timedelta(hours=1):
+        libumccr.aws.libsm.get_secret.cache_clear()
+        ica_access_token = libumccr.aws.libsm.get_secret('IcaSecretsPortal')
     return libica.openapi.libgds.Configuration(
         host='https://aps2.platform.illumina.com',
         api_key_prefix={'Authorization': 'Bearer'},
-        api_key={'Authorization': ICA_ACCESS_TOKEN},
+        api_key={'Authorization': ica_access_token},
     )
+
+
+def time_until_token_expiry(token):
+    """Get time remaining until token expiry.
+
+    :param str token: Base64 encoded JWT token
+    :returns: Time until expiry
+    :rtype: datetime.datetime.timedelta
+    """
+    token_parts = token.split('.')
+    assert len(token_parts) == 3
+    padding = '=' * (len(token_parts[1]) % 4)
+    payload_str = base64.b64decode(token_parts[1] + padding)
+    payload = json.loads(payload_str)
+    expiry = datetime.datetime.fromtimestamp(payload['exp'])
+    return expiry - datetime.datetime.now()

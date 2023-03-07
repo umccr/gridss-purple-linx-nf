@@ -254,7 +254,7 @@ class GplStack(Stack):
             self,
             'SubmitJobLambdaRole',
             assumed_by=iam.ServicePrincipal('lambda.amazonaws.com'),
-            inline_policies=[submit_job_lambda_role_policy],
+            inline_policies={'submit_job_lambda_role_policy': submit_job_lambda_role_policy},
             managed_policies=[
                 iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AWSLambdaBasicExecutionRole'),
             ],
