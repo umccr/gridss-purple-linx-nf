@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2
+
+* Release date: 2023-03-14
+* Updated DRAGEN run directory for job submissions
+* See [milestone 0.2.2 for all related PRs](https://github.com/umccr/gridss-purple-linx-nf/milestone/2?closed=1)
+
 ## 0.2.1
 
 * Release date: 2023-03-08
