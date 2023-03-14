@@ -361,7 +361,7 @@ def get_submission_data(tumor_sample_md, normal_sample_md, subject_id, api_auth)
     tumor_sv_vcf = get_file_path(fr'^.+{tumor_id}.sv.vcf.gz$', file_list)
 
     # Set output directory using tumor BAM path
-    outdir_regex = re.compile(r'^gds://[^/]+/(.+)/wgs_tumor_normal/.+/(L\d+)_(L\d+)_dragen/.+?\.bam$')
+    outdir_regex = re.compile(r'^gds://[^/]+/(.+)/wgs_tumor_normal/.+/(L\d+)_(L\d+)_dragen_somatic/.+?\.bam$')
     if not (re_result := outdir_regex.match(tumor_bam)):
         msg = (
             f'found non-standard input directory for tumor BAM ({tumor_bam}), refusing to guess'
