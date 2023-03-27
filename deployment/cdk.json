@@ -8,6 +8,12 @@
       "portal_api_base_url": "https://api.data.dev.umccr.org",
       "buckets_rw": ["umccr-temp-dev"]
     },
+    "stg": {
+      "container_image": "843407916570.dkr.ecr.ap-southeast-2.amazonaws.com/gpl-nf:0.2.2",
+      "output_volume": "staging",
+      "reference_data": "s3://umccr-refdata-stg/gpl-nf/",
+      "portal_api_base_url": "https://api.data.stg.umccr.org"
+    },
     "prod": {
       "container_image": "843407916570.dkr.ecr.ap-southeast-2.amazonaws.com/gpl-nf:0.2.2",
       "output_volume": "production",
