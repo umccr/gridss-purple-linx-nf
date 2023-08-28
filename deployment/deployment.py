@@ -64,15 +64,6 @@ class GplStack(Stack):
             instance_profile_name=f'{props["namespace"]}-batch-instance-profile',
         )
 
-        batch_spot_fleet_role = iam.Role(
-            self,
-            'BatchSpotFleetRole',
-            assumed_by=iam.ServicePrincipal('spotfleet.amazonaws.com'),
-            managed_policies=[
-                iam.ManagedPolicy.from_aws_managed_policy_name('service-role/AmazonEC2SpotFleetTaggingRole'),
-            ],
-        )
-
         batch_security_group = ec2.SecurityGroup.from_lookup_by_name(
             self,
             'SecruityGroupOutBoundOnly',
@@ -104,9 +95,8 @@ class GplStack(Stack):
             'm4.2xlarge',
             'm5.2xlarge',
             'm5a.2xlarge',
-            'm5ad.2xlarge',
-            'm5d.2xlarge',
-            'm5zn.2xlarge',
+            'm6i.2xlarge',
+            'm6a.2xlarge',
             'r3.2xlarge',
             'r4.2xlarge',
         ]
@@ -117,15 +107,13 @@ class GplStack(Stack):
             compute_environment_name=f'{props["namespace"]}-compute-environment',
             compute_resources=batch.ComputeResources(
                 vpc=vpc,
-                allocation_strategy=batch.AllocationStrategy.SPOT_CAPACITY_OPTIMIZED,
+                allocation_strategy=batch.AllocationStrategy.BEST_FIT,
                 desiredv_cpus=0,
                 instance_role=batch_instance_profile.attr_arn,
                 instance_types=[ec2.InstanceType(it) for it in instance_types],
                 launch_template=batch_launch_template_spec,
                 maxv_cpus=128,
                 security_groups=[batch_security_group],
-                spot_fleet_role=batch_spot_fleet_role,
-                type=batch.ComputeResourceType.SPOT,
                 compute_resources_tags={
                     'Name': props['namespace'],
                     'Creator': props['batch_resource_tags']['Creator'],

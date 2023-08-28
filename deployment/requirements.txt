@@ -1,5 +1,5 @@
-aws-cdk-lib
-aws-cdk.aws-batch-alpha
+aws-cdk-lib==2.73
+aws-cdk.aws-batch-alpha==2.73.0a0
 boto3
 libica==2.0.0
 libumccr==0.2.0
